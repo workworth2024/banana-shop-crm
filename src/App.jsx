@@ -12,6 +12,7 @@ import Manuals from './pages/Manuals';
 import Services from './pages/Services';
 import AccountSales from './pages/AccountSales';
 import Support from './pages/Support';
+import Reviews from './pages/Reviews';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           <Route path="manuals" element={<Manuals />} />
           <Route path="services" element={<Services />} />
           <Route path="account-sales" element={<AccountSales />} />
+          <Route path="reviews" element={<Reviews />} />
           <Route path="support" element={<Support />} />
         </Route>
       </Routes>

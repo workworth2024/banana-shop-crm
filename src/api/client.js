@@ -65,6 +65,13 @@ const api = {
       ...options,
       method: 'GET'
     });
+  },
+
+  delete(endpoint, options = {}) {
+    return this.request(endpoint, {
+      ...options,
+      method: 'DELETE'
+    });
   }
 };
 

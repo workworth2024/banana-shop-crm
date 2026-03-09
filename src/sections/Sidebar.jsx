@@ -10,6 +10,7 @@ import {
   Briefcase,
   Key,
   LifeBuoy,
+  Star,
   ChevronRight
 } from 'lucide-react';
 
@@ -56,6 +57,7 @@ const Sidebar = () => {
     { to: "/manuals", icon: BookOpen, label: "Мануалы" },
     { to: "/services", icon: Briefcase, label: "Услуги" },
     { to: "/account-sales", icon: Key, label: "Продажа аккаунтов" },
+    { to: "/reviews", icon: Star, label: "Отзывы" },
     { to: "/support", icon: LifeBuoy, label: "Поддержка" },
   ];
 
