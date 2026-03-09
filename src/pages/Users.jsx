@@ -281,9 +281,12 @@ const Users = () => {
           backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 
         }}>
           <div style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '20px', width: '100%', maxWidth: '450px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ marginBottom: '1.5rem', fontWeight: '700' }}>
-              {showCreateModal ? 'Создать пользователя' : 'Редактировать пользователя'}
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontWeight: '700' }}>
+                {showCreateModal ? 'Создать пользователя' : 'Редактировать пользователя'}
+              </h2>
+              <button type="button" onClick={() => { setShowCreateModal(false); setShowEditModal(false); }} style={{ padding: '0.5rem', backgroundColor: '#d1d5db', color: '#111827', borderRadius: '8px', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+            </div>
             <form onSubmit={showCreateModal ? handleCreate : handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Логин</label>
