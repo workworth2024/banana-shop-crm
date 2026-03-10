@@ -32,7 +32,7 @@ const MenuBar = ({ editor }) => {
     formData.append('image', file)
     try {
       const res = await api.request('/manuals/upload-image', { method: 'POST', body: formData })
-      editor.chain().focus().setImage({ src: `http://localhost:8000${res.url}` }).run()
+      editor.chain().focus().setImage({ src: `${import.meta.env.VITE_API_URL}${res.url}` }).run()
     } catch {
       alert('Ошибка загрузки изображения')
     }

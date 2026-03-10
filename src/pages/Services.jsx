@@ -311,7 +311,7 @@ const Services = () => {
                 <ClickableCell text={s._id} style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>{s._id.slice(-6)}</ClickableCell>
                 <td style={{ padding: '1rem 1.5rem' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#f3f4f6', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb' }}>
-                    {s.path_image ? <img src={`http://localhost:8000${s.path_image}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={18} color="#9ca3af" />}
+                    {s.path_image ? <img src={`${import.meta.env.VITE_API_URL}${s.path_image}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={18} color="#9ca3af" />}
                   </div>
                 </td>
                 <ClickableCell text={s.title?.ru || s.title?.en || ''} style={{ fontWeight: '600', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title?.ru || s.title?.en || ''}</ClickableCell>
