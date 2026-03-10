@@ -48,7 +48,10 @@ const Products = () => {
     get: 200,
     counts: 100,
     price: 100,
-    filter: 150
+    filter: 150,
+    link: 180,
+    wholesale: 120,
+    countWholesale: 120
   });
 
   const copyToClipboard = (text) => {
@@ -191,14 +194,17 @@ const Products = () => {
         counts: product.counts,
         filter_id: product.filter_id,
         geo: product.geo,
-        path_image: product.path_image
+        path_image: product.path_image,
+        link: product.link || '',
+        wholesale_price: product.wholesale_price ?? '',
+        count_for_wholesale: product.count_for_wholesale ?? ''
       });
       setGeoSearch('');
     } else {
       setEditingProduct(null);
       setProductForm(activeTab === 'youtube' 
-        ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, counts: 0, filter_id: '', geo: 'US' }
-        : { type: 'self-farm', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'inclusive.ru': '', 'inclusive.en': '', 'get.ru': '', 'get.en': '', price: 0, counts: 0, filter_id: '', geo: 'US' }
+        ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', link: '', wholesale_price: '', count_for_wholesale: '' }
+        : { type: 'self-farm', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'inclusive.ru': '', 'inclusive.en': '', 'get.ru': '', 'get.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', link: '', wholesale_price: '', count_for_wholesale: '' }
       );
       setGeoSearch('');
     }
@@ -236,6 +242,13 @@ const Products = () => {
     formData.append('price', productForm.price);
     formData.append('counts', productForm.counts);
     formData.append('geo', productForm.geo);
+    formData.append('link', productForm.link || '');
+    if (productForm.wholesale_price !== '' && productForm.wholesale_price !== null) {
+      formData.append('wholesale_price', productForm.wholesale_price);
+    }
+    if (productForm.count_for_wholesale !== '' && productForm.count_for_wholesale !== null) {
+      formData.append('count_for_wholesale', productForm.count_for_wholesale);
+    }
     
     const filterId = productForm.filter_id?._id || productForm.filter_id || '';
     formData.append('filter_id', filterId);
@@ -612,6 +625,15 @@ const Products = () => {
               <th style={{ width: `${columnWidths.filter}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Фильтр <Resizer onResize={(w) => handleResize('filter', w)} />
               </th>
+              <th style={{ width: `${columnWidths.link}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
+                Ссылка <Resizer onResize={(w) => handleResize('link', w)} />
+              </th>
+              <th style={{ width: `${columnWidths.wholesale}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
+                Опт.цена <Resizer onResize={(w) => handleResize('wholesale', w)} />
+              </th>
+              <th style={{ width: `${columnWidths.countWholesale}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
+                Кол-во опт <Resizer onResize={(w) => handleResize('countWholesale', w)} />
+              </th>
               <th style={{ width: '120px', padding: '1rem 1.5rem', textAlign: 'right' }}>Действия</th>
             </tr>
           </thead>
@@ -683,6 +705,15 @@ const Products = () => {
                   ) : (
                     <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
                   )}
+                </ClickableCell>
+                <ClickableCell text={p.link || ''} style={{ fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.link ? <a href={p.link} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }} onClick={e => e.stopPropagation()}>{p.link}</a> : '—'}
+                </ClickableCell>
+                <ClickableCell text={p.wholesale_price != null ? p.wholesale_price.toString() : ''} style={{ fontWeight: '600', color: '#7c3aed' }}>
+                  {p.wholesale_price != null ? `$${p.wholesale_price}` : '—'}
+                </ClickableCell>
+                <ClickableCell text={p.count_for_wholesale != null ? p.count_for_wholesale.toString() : ''}>
+                  {p.count_for_wholesale != null ? `${p.count_for_wholesale} шт.` : '—'}
                 </ClickableCell>
                 <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
                   {canManage && (
@@ -858,6 +889,20 @@ const Products = () => {
                     <option value="">Без фильтра</option>
                     {filters.map(f => <option key={f._id} value={f._id}>{f.name.ru || f.name.en}</option>)}
                   </select>
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Ссылка</label>
+                <input type="url" placeholder="https://..." value={productForm.link || ''} onChange={(e) => setProductForm({...productForm, link: e.target.value})} />
+              </div>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Опт. цена ($)</label>
+                  <input type="number" step="0.01" min="0" placeholder="—" value={productForm.wholesale_price ?? ''} onChange={(e) => setProductForm({...productForm, wholesale_price: e.target.value})} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Кол-во для опта</label>
+                  <input type="number" min="0" placeholder="—" value={productForm.count_for_wholesale ?? ''} onChange={(e) => setProductForm({...productForm, count_for_wholesale: e.target.value})} />
                 </div>
               </div>
               <div>

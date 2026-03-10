@@ -37,7 +37,8 @@ const Services = () => {
     desc: 250,
     subDesc: 200,
     price: 100,
-    filter: 150
+    filter: 150,
+    link: 180
   });
 
   const copyToClipboard = (text) => {
@@ -142,11 +143,12 @@ const Services = () => {
         'sub_desc.en': service.sub_desc?.en || '',
         price: service.price,
         filter_id: service.filter_id,
-        path_image: service.path_image
+        path_image: service.path_image,
+        link: service.link || ''
       });
     } else {
       setEditingService(null);
-      setServiceForm({ 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'sub_desc.ru': '', 'sub_desc.en': '', price: 0, filter_id: '' });
+      setServiceForm({ 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'sub_desc.ru': '', 'sub_desc.en': '', price: 0, filter_id: '', link: '' });
     }
     setImageFile(null);
     setShowServiceModal(true);
@@ -173,6 +175,7 @@ const Services = () => {
     formData.append('sub_desc.ru', serviceForm['sub_desc.ru'] || '');
     formData.append('sub_desc.en', serviceForm['sub_desc.en'] || '');
     formData.append('price', serviceForm.price);
+    formData.append('link', serviceForm.link || '');
     
     const filterId = serviceForm.filter_id?._id || serviceForm.filter_id || '';
     formData.append('filter_id', filterId);
@@ -290,6 +293,9 @@ const Services = () => {
               <th style={{ width: `${columnWidths.filter}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Фильтр <Resizer onResize={(w) => handleResize('filter', w)} />
               </th>
+              <th style={{ width: `${columnWidths.link}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
+                Ссылка <Resizer onResize={(w) => handleResize('link', w)} />
+              </th>
               <th style={{ width: '120px', padding: '1rem 1.5rem', textAlign: 'right' }}>Действия</th>
             </tr>
           </thead>
@@ -320,6 +326,9 @@ const Services = () => {
                   ) : (
                     <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
                   )}
+                </ClickableCell>
+                <ClickableCell text={s.link || ''} style={{ fontSize: '0.8125rem', color: '#2563eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.link ? <a href={s.link} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }} onClick={e => e.stopPropagation()}>{s.link}</a> : '—'}
                 </ClickableCell>
                 <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
                   {canManage && (
@@ -389,6 +398,10 @@ const Services = () => {
                     {filters.map(f => <option key={f._id} value={f._id}>{f.name.ru || f.name.en}</option>)}
                   </select>
                 </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Ссылка</label>
+                <input type="url" placeholder="https://..." value={serviceForm.link || ''} onChange={(e) => setServiceForm({...serviceForm, link: e.target.value})} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Изображение</label>

@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Filter as FilterIcon, 
   ChevronLeft, ChevronRight, FileText, X, Check,
-  Settings2, Calendar, Link as LinkIcon, Download
+  Settings2, Calendar, Link as LinkIcon, Download, PenLine
 } from 'lucide-react';
 import api from '../api/client';
 import { useAuthStore } from '../stores/authStore';
+import ArticleEditor from '../components/ArticleEditor';
 
 const Manuals = () => {
   const [manuals, setManuals] = useState([]);
@@ -21,6 +22,7 @@ const Manuals = () => {
   
   const [showManualModal, setShowManualModal] = useState(false);
   const [editingManual, setEditingManual] = useState(null);
+  const [showArticleEditor, setShowArticleEditor] = useState(false);
 
   const { user } = useAuthStore();
   const canManage = user?.role === 'admin' || user?.role === 'manager';
@@ -28,6 +30,8 @@ const Manuals = () => {
   // Form states
   const [manualForm, setManualForm] = useState({});
   const [manualFile, setManualFile] = useState(null);
+  const [articleContentRu, setArticleContentRu] = useState('');
+  const [articleContentEn, setArticleContentEn] = useState('');
 
   const [columnWidths, setColumnWidths] = useState({
     id: 80,
@@ -138,9 +142,13 @@ const Manuals = () => {
         filter_id: manual.filter_id,
         path_to_file: manual.path_to_file
       });
+      setArticleContentRu(manual.content?.ru || '');
+      setArticleContentEn(manual.content?.en || '');
     } else {
       setEditingManual(null);
       setManualForm({ 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', link: '', filter_id: '' });
+      setArticleContentRu('');
+      setArticleContentEn('');
     }
     setManualFile(null);
     setShowManualModal(true);
@@ -163,6 +171,8 @@ const Manuals = () => {
     formData.append('desc.ru', manualForm['desc.ru'] || '');
     formData.append('desc.en', manualForm['desc.en'] || '');
     formData.append('link', manualForm.link || '');
+    formData.append('content.ru', articleContentRu || '');
+    formData.append('content.en', articleContentEn || '');
     
     const filterId = manualForm.filter_id?._id || manualForm.filter_id || '';
     formData.append('filter_id', filterId);
@@ -353,6 +363,23 @@ const Manuals = () => {
                 <input type="text" value={manualForm.link || ''} onChange={(e) => setManualForm({...manualForm, link: e.target.value})} placeholder="https://..." />
               </div>
               <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Статья (контент)</label>
+                <button
+                  type="button"
+                  onClick={() => setShowArticleEditor(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', backgroundColor: (articleContentRu || articleContentEn) ? '#16a34a' : '#1f2937', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}
+                >
+                  <PenLine size={18} />
+                  {(articleContentRu || articleContentEn) ? '✓ Статья написана — редактировать' : 'Написать статью'}
+                </button>
+                {(articleContentRu || articleContentEn) && (
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#6b7280' }}>
+                    RU: {articleContentRu ? `${articleContentRu.replace(/<[^>]+>/g, '').substring(0, 60)}...` : '—'} &nbsp;|&nbsp;
+                    EN: {articleContentEn ? `${articleContentEn.replace(/<[^>]+>/g, '').substring(0, 60)}...` : '—'}
+                  </p>
+                )}
+              </div>
+              <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Фильтр</label>
                 <select value={manualForm.filter_id?._id || manualForm.filter_id || ''} onChange={(e) => setManualForm({...manualForm, filter_id: e.target.value})}>
                   <option value="">Без фильтра</option>
@@ -370,6 +397,16 @@ const Manuals = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {showArticleEditor && (
+        <ArticleEditor
+          valuRu={articleContentRu}
+          valueEn={articleContentEn}
+          onChangeRu={setArticleContentRu}
+          onChangeEn={setArticleContentEn}
+          onClose={() => setShowArticleEditor(false)}
+        />
       )}
     </div>
   );
