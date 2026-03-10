@@ -7,6 +7,9 @@ import {
 import api from '../api/client';
 import { useAuthStore } from '../stores/authStore';
 import countries from '../utils/countries.json';
+import { useConfirm } from '../components/ConfirmDialog';
+import { ImageUploadInput } from '../components/FileUploadInput';
+import toast from 'react-hot-toast';
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState('youtube');
@@ -36,6 +39,7 @@ const Products = () => {
   const [filterForm, setFilterForm] = useState({ 'name.ru': '', 'name.en': '', color: '#008b8b' });
   const [imageFile, setImageFile] = useState(null);
   const [geoSearch, setGeoSearch] = useState('');
+  const { confirm, ConfirmNode } = useConfirm();
   const [columnWidths, setColumnWidths] = useState({
     id: 80,
     type: 100,
@@ -215,11 +219,11 @@ const Products = () => {
   const handleProductSubmit = async (e) => {
     e.preventDefault();
     if (!productForm['title.ru'] && !productForm['title.en']) {
-      alert('Название должно быть заполнено на русском или английском языке');
+      toast.error('Название должно быть заполнено на русском или английском языке');
       return;
     }
     if (!productForm['desc.ru'] && !productForm['desc.en']) {
-      alert('Описание должно быть заполнено на русском или английском языке');
+      toast.error('Описание должно быть заполнено на русском или английском языке');
       return;
     }
     
@@ -260,31 +264,29 @@ const Products = () => {
     try {
       const endpoint = activeTab === 'youtube' ? '/products/youtube' : '/products/google-ads';
       if (editingProduct) {
-        await api.request(`${endpoint}/${editingProduct._id}`, {
-          method: 'PUT',
-          body: formData
-        });
+        await api.request(`${endpoint}/${editingProduct._id}`, { method: 'PUT', body: formData });
+        toast.success('Товар успешно изменён');
       } else {
-        await api.request(endpoint, {
-          method: 'POST',
-          body: formData
-        });
+        await api.request(endpoint, { method: 'POST', body: formData });
+        toast.success('Товар успешно добавлен');
       }
       setShowProductModal(false);
       fetchProducts();
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка сохранения');
     }
   };
 
   const handleDeleteProduct = async (id) => {
-    if (!window.confirm('Удалить товар?')) return;
+    const ok = await confirm('Вы уверены, что хотите удалить этот товар?');
+    if (!ok) return;
     try {
       const endpoint = activeTab === 'youtube' ? '/products/youtube' : '/products/google-ads';
       await api.request(`${endpoint}/${id}`, { method: 'DELETE' });
       fetchProducts();
+      toast.success('Товар удалён');
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка удаления');
     }
   };
 
@@ -293,13 +295,15 @@ const Products = () => {
     try {
       if (editingFilter) {
         await api.put(`/products/filters/${editingFilter._id}`, filterForm);
+        toast.success('Фильтр изменён');
       } else {
         await api.post('/products/filters', filterForm);
+        toast.success('Фильтр добавлен');
       }
       setShowFilterModal(false);
       fetchFilters();
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка');
     }
   };
 
@@ -905,10 +909,12 @@ const Products = () => {
                   <input type="number" min="0" placeholder="—" value={productForm.count_for_wholesale ?? ''} onChange={(e) => setProductForm({...productForm, count_for_wholesale: e.target.value})} />
                 </div>
               </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Изображение</label>
-                <input type="file" onChange={(e) => setImageFile(e.target.files[0])} accept="image/*" />
-              </div>
+              <ImageUploadInput
+                file={imageFile}
+                onChange={setImageFile}
+                currentImageUrl={editingProduct?.path_image}
+                label="Изображение"
+              />
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowProductModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Отмена</button>
                 <button type="submit" style={{ flex: 1 }}>Сохранить</button>
@@ -917,6 +923,8 @@ const Products = () => {
           </div>
         </div>
       )}
+
+      {ConfirmNode}
 
       {/* Filter Modal (same as before) */}
       {showFilterModal && (
@@ -943,7 +951,7 @@ const Products = () => {
                   </div>
                   <div style={{ display: 'flex', gap: '0.25rem' }}>
                     <button onClick={() => { setEditingFilter(f); setFilterForm({ 'name.ru': f.name.ru || '', 'name.en': f.name.en || '', color: f.color }); }} style={{ padding: '0.25rem', backgroundColor: 'transparent', color: '#6b7280' }}><Edit2 size={12} /></button>
-                    <button onClick={async () => { if(window.confirm('Удалить?')) { await api.request(`/products/filters/${f._id}`, { method: 'DELETE' }); fetchFilters(); } }} style={{ padding: '0.25rem', backgroundColor: 'transparent', color: '#ef4444' }}><Trash2 size={12} /></button>
+                    <button onClick={async () => { const ok = await confirm('Удалить фильтр?'); if(ok) { await api.request(`/products/filters/${f._id}`, { method: 'DELETE' }); fetchFilters(); toast.success('Фильтр удалён'); } }} style={{ padding: '0.25rem', backgroundColor: 'transparent', color: '#ef4444' }}><Trash2 size={12} /></button>
                   </div>
                 </div>
               ))}

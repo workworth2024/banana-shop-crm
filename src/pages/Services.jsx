@@ -6,6 +6,9 @@ import {
 } from 'lucide-react';
 import api from '../api/client';
 import { useAuthStore } from '../stores/authStore';
+import { useConfirm } from '../components/ConfirmDialog';
+import { ImageUploadInput } from '../components/FileUploadInput';
+import toast from 'react-hot-toast';
 
 const Services = () => {
   const [services, setServices] = useState([]);
@@ -28,6 +31,7 @@ const Services = () => {
   // Form states
   const [serviceForm, setServiceForm] = useState({});
   const [imageFile, setImageFile] = useState(null);
+  const { confirm, ConfirmNode } = useConfirm();
 
   const [columnWidths, setColumnWidths] = useState({
     id: 80,
@@ -157,11 +161,11 @@ const Services = () => {
   const handleServiceSubmit = async (e) => {
     e.preventDefault();
     if (!serviceForm['title.ru'] && !serviceForm['title.en']) {
-      alert('Название должно быть заполнено на русском или английском языке');
+      toast.error('Название должно быть заполнено на русском или английском языке');
       return;
     }
     if (!serviceForm['desc.ru'] && !serviceForm['desc.en']) {
-      alert('Описание должно быть заполнено на русском или английском языке');
+      toast.error('Описание должно быть заполнено на русском или английском языке');
       return;
     }
     
@@ -186,30 +190,28 @@ const Services = () => {
 
     try {
       if (editingService) {
-        await api.request(`/services/${editingService._id}`, {
-          method: 'PUT',
-          body: formData
-        });
+        await api.request(`/services/${editingService._id}`, { method: 'PUT', body: formData });
+        toast.success('Услуга успешно изменена');
       } else {
-        await api.request('/services', {
-          method: 'POST',
-          body: formData
-        });
+        await api.request('/services', { method: 'POST', body: formData });
+        toast.success('Услуга успешно добавлена');
       }
       setShowServiceModal(false);
       fetchServices();
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка сохранения');
     }
   };
 
   const handleDeleteService = async (id) => {
-    if (!window.confirm('Удалить услугу?')) return;
+    const ok = await confirm('Вы уверены, что хотите удалить эту услугу?');
+    if (!ok) return;
     try {
       await api.request(`/services/${id}`, { method: 'DELETE' });
       fetchServices();
+      toast.success('Услуга удалена');
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка удаления');
     }
   };
 
@@ -403,10 +405,12 @@ const Services = () => {
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Ссылка</label>
                 <input type="url" placeholder="https://..." value={serviceForm.link || ''} onChange={(e) => setServiceForm({...serviceForm, link: e.target.value})} />
               </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Изображение</label>
-                <input type="file" onChange={(e) => setImageFile(e.target.files[0])} accept="image/*" />
-              </div>
+              <ImageUploadInput
+                file={imageFile}
+                onChange={setImageFile}
+                currentImageUrl={editingService?.path_image}
+                label="Изображение"
+              />
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowServiceModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Отмена</button>
                 <button type="submit" style={{ flex: 1 }}>Сохранить</button>
@@ -415,6 +419,7 @@ const Services = () => {
           </div>
         </div>
       )}
+      {ConfirmNode}
     </div>
   );
 };

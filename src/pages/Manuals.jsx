@@ -7,6 +7,9 @@ import {
 import api from '../api/client';
 import { useAuthStore } from '../stores/authStore';
 import ArticleEditor from '../components/ArticleEditor';
+import { useConfirm } from '../components/ConfirmDialog';
+import { FileUploadInput } from '../components/FileUploadInput';
+import toast from 'react-hot-toast';
 
 const Manuals = () => {
   const [manuals, setManuals] = useState([]);
@@ -30,8 +33,10 @@ const Manuals = () => {
   // Form states
   const [manualForm, setManualForm] = useState({});
   const [manualFile, setManualFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [articleContentRu, setArticleContentRu] = useState('');
   const [articleContentEn, setArticleContentEn] = useState('');
+  const { confirm, ConfirmNode } = useConfirm();
 
   const [columnWidths, setColumnWidths] = useState({
     id: 80,
@@ -157,11 +162,11 @@ const Manuals = () => {
   const handleManualSubmit = async (e) => {
     e.preventDefault();
     if (!manualForm['title.ru'] && !manualForm['title.en']) {
-      alert('Название должно быть заполнено на русском или английском языке');
+      toast.error('Название должно быть заполнено на русском или английском языке');
       return;
     }
     if (!manualForm['desc.ru'] && !manualForm['desc.en']) {
-      alert('Описание должно быть заполнено на русском или английском языке');
+      toast.error('Описание должно быть заполнено на русском или английском языке');
       return;
     }
     
@@ -181,32 +186,44 @@ const Manuals = () => {
       formData.append('file', manualFile);
     }
 
+    const isEdit = !!editingManual;
+    const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/${isEdit ? `manuals/${editingManual._id}` : 'manuals'}`;
+    const token = localStorage.getItem('token');
+
     try {
-      if (editingManual) {
-        await api.request(`/manuals/${editingManual._id}`, {
-          method: 'PUT',
-          body: formData
-        });
-      } else {
-        await api.request('/manuals', {
-          method: 'POST',
-          body: formData
-        });
-      }
+      setUploadProgress(manualFile ? 0 : null);
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(isEdit ? 'PUT' : 'POST', url);
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        if (manualFile) {
+          xhr.upload.onprogress = (ev) => {
+            if (ev.lengthComputable) setUploadProgress(Math.round((ev.loaded / ev.total) * 100));
+          };
+        }
+        xhr.onload = () => xhr.status < 300 ? resolve() : reject(new Error(xhr.responseText));
+        xhr.onerror = () => reject(new Error('Ошибка сети'));
+        xhr.send(formData);
+      });
+      setUploadProgress(null);
       setShowManualModal(false);
       fetchManuals();
+      toast.success(isEdit ? 'Мануал успешно изменён' : 'Мануал успешно добавлен');
     } catch (err) {
-      alert(err.message);
+      setUploadProgress(null);
+      toast.error(err.message || 'Ошибка сохранения');
     }
   };
 
   const handleDeleteManual = async (id) => {
-    if (!window.confirm('Удалить мануал?')) return;
+    const ok = await confirm('Вы уверены, что хотите удалить этот мануал?');
+    if (!ok) return;
     try {
       await api.request(`/manuals/${id}`, { method: 'DELETE' });
       fetchManuals();
+      toast.success('Мануал удалён');
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка удаления');
     }
   };
 
@@ -386,10 +403,13 @@ const Manuals = () => {
                   {filters.map(f => <option key={f._id} value={f._id}>{f.name.ru || f.name.en}</option>)}
                 </select>
               </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Файл (PDF, ZIP и др.)</label>
-                <input type="file" onChange={(e) => setManualFile(e.target.files[0])} />
-              </div>
+              <FileUploadInput
+                file={manualFile}
+                onChange={setManualFile}
+                currentFileUrl={editingManual?.path_to_file}
+                uploadProgress={uploadProgress}
+                label="Файл (PDF, ZIP и др.)"
+              />
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowManualModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Отмена</button>
                 <button type="submit" style={{ flex: 1 }}>Сохранить</button>
@@ -408,6 +428,7 @@ const Manuals = () => {
           onClose={() => setShowArticleEditor(false)}
         />
       )}
+      {ConfirmNode}
     </div>
   );
 };
