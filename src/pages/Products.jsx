@@ -192,8 +192,8 @@ const Products = () => {
         'desc.en': product.desc?.en || '',
         'inclusive.ru': product.inclusive?.ru || '',
         'inclusive.en': product.inclusive?.en || '',
-        'get.ru': product.get?.ru || '',
-        'get.en': product.get?.en || '',
+        'receive.ru': product.receive?.ru || '',
+        'receive.en': product.receive?.en || '',
         price: product.price,
         counts: product.counts,
         filter_id: product.filter_id,
@@ -208,7 +208,7 @@ const Products = () => {
       setEditingProduct(null);
       setProductForm(activeTab === 'youtube' 
         ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', link: '', wholesale_price: '', count_for_wholesale: '' }
-        : { type: 'self-farm', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'inclusive.ru': '', 'inclusive.en': '', 'get.ru': '', 'get.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', link: '', wholesale_price: '', count_for_wholesale: '' }
+        : { type: 'self-farm', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'inclusive.ru': '', 'inclusive.en': '', 'receive.ru': '', 'receive.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', link: '', wholesale_price: '', count_for_wholesale: '' }
       );
       setGeoSearch('');
     }
@@ -239,8 +239,8 @@ const Products = () => {
       formData.append('sub_title.en', productForm['sub_title.en'] || '');
       formData.append('inclusive.ru', productForm['inclusive.ru'] || '');
       formData.append('inclusive.en', productForm['inclusive.en'] || '');
-      formData.append('get.ru', productForm['get.ru'] || '');
-      formData.append('get.en', productForm['get.en'] || '');
+      formData.append('receive.ru', productForm['receive.ru'] || '');
+      formData.append('receive.en', productForm['receive.en'] || '');
     }
     
     formData.append('price', productForm.price);
@@ -671,7 +671,7 @@ const Products = () => {
                 </ClickableCell>
                 <td style={{ padding: '1rem 1.5rem' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#f3f4f6', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb' }}>
-                    {p.path_image ? <img src={`http://localhost:8000${p.path_image}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={18} color="#9ca3af" />}
+                    {p.path_image ? <img src={`${import.meta.env.VITE_API_URL}${p.path_image}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={18} color="#9ca3af" />}
                   </div>
                 </td>
                 <ClickableCell text={p.title?.ru || p.title?.en || ''} style={{ fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-main)' }}>{p.title?.ru || p.title?.en || ''}</ClickableCell>
@@ -680,7 +680,7 @@ const Products = () => {
                 {activeTab === 'google-ads' && (
                   <>
                     <ClickableCell text={p.inclusive?.ru || p.inclusive?.en || ''} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.inclusive?.ru || p.inclusive?.en || '—'}</ClickableCell>
-                    <ClickableCell text={p.get?.ru || p.get?.en || ''} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.get?.ru || p.get?.en || '—'}</ClickableCell>
+                    <ClickableCell text={p.receive?.ru || p.receive?.en || ''} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.receive?.ru || p.receive?.en || '—'}</ClickableCell>
                   </>
                 )}
                 <ClickableCell text={p.counts.toString()}>
@@ -822,14 +822,14 @@ const Products = () => {
                       <textarea 
                         placeholder="Русский"
                         style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }}
-                        value={productForm['get.ru'] || ''} 
-                        onChange={(e) => setProductForm({...productForm, 'get.ru': e.target.value})} 
+                        value={productForm['receive.ru'] || ''} 
+                        onChange={(e) => setProductForm({...productForm, 'receive.ru': e.target.value})} 
                       />
                       <textarea 
                         placeholder="English"
                         style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }}
-                        value={productForm['get.en'] || ''} 
-                        onChange={(e) => setProductForm({...productForm, 'get.en': e.target.value})} 
+                        value={productForm['receive.en'] || ''} 
+                        onChange={(e) => setProductForm({...productForm, 'receive.en': e.target.value})} 
                       />
                     </div>
                   </div>

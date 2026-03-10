@@ -187,7 +187,7 @@ const Manuals = () => {
     }
 
     const isEdit = !!editingManual;
-    const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/${isEdit ? `manuals/${editingManual._id}` : 'manuals'}`;
+    const url = `${import.meta.env.VITE_API_URL}/api/v3/${isEdit ? `manuals/${editingManual._id}` : 'manuals'}`;
     const token = localStorage.getItem('token');
 
     try {
@@ -318,7 +318,7 @@ const Manuals = () => {
                   {m.link ? <a href={m.link} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'inherit', textDecoration: 'none' }}><LinkIcon size={14} /> Открыть</a> : '—'}
                 </ClickableCell>
                 <ClickableCell text={m.path_to_file} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {m.path_to_file ? <a href={`http://localhost:8000${m.path_to_file}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', textDecoration: 'none' }}><Download size={14} /> Скачать</a> : '—'}
+                  {m.path_to_file ? <a href={`${import.meta.env.VITE_API_URL}${m.path_to_file}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', textDecoration: 'none' }}><Download size={14} /> Скачать</a> : '—'}
                 </ClickableCell>
                 <ClickableCell text={m.filter_id ? (m.filter_id.name.ru || m.filter_id.name.en) : ''}>
                   {m.filter_id ? (

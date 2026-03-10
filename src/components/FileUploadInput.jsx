@@ -4,7 +4,7 @@ import { Upload, X, Image as ImageIcon, FileText } from 'lucide-react'
 export function ImageUploadInput({ file, onChange, currentImageUrl, label = 'Изображение' }) {
   const fileRef = useRef()
   const previewUrl = file ? URL.createObjectURL(file) : null
-  const existingUrl = currentImageUrl ? `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${currentImageUrl}` : null
+  const existingUrl = currentImageUrl ? `${import.meta.env.VITE_API_URL}${currentImageUrl}` : null
   const displayUrl = previewUrl || existingUrl
 
   return (

@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:8000/api/v3';
+const BASE_URL = `${import.meta.env.VITE_API_URL}/api/v3`;
 
 const api = {
   async request(endpoint, options = {}) {
