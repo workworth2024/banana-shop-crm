@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Package, Image as ImageIcon, X, Check,
   Settings2, Calendar, MapPin
 } from 'lucide-react';
-import api from '../api/client';
+import { getFilters, createFilter, updateFilter, deleteFilter, getYoutubeProducts, getGoogleAdsProducts, saveProduct, deleteProduct } from '../api/products';
 import { useAuthStore } from '../stores/authStore';
 import countries from '../utils/countries.json';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -128,7 +128,7 @@ const Products = () => {
 
   const fetchFilters = useCallback(async () => {
     try {
-      const data = await api.get('/products/filters');
+      const data = await getFilters();
       setFilters(data);
     } catch (err) {
       console.error('Fetch filters error:', err);
@@ -138,7 +138,6 @@ const Products = () => {
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const endpoint = activeTab === 'youtube' ? '/products/youtube' : '/products/google-ads';
       const queryParams = new URLSearchParams({
         page: currentPage,
         search,
@@ -147,9 +146,9 @@ const Products = () => {
         geo: selectedGeo,
         startDate,
         endDate
-      }).toString();
+      });
       
-      const data = await api.get(`${endpoint}?${queryParams}`);
+      const data = await (activeTab === 'youtube' ? getYoutubeProducts(queryParams) : getGoogleAdsProducts(queryParams));
       setProducts(data.products);
       setTotal(data.total);
       setPages(data.pages);
@@ -262,14 +261,8 @@ const Products = () => {
     }
 
     try {
-      const endpoint = activeTab === 'youtube' ? '/products/youtube' : '/products/google-ads';
-      if (editingProduct) {
-        await api.request(`${endpoint}/${editingProduct._id}`, { method: 'PUT', body: formData });
-        toast.success('Товар успешно изменён');
-      } else {
-        await api.request(endpoint, { method: 'POST', body: formData });
-        toast.success('Товар успешно добавлен');
-      }
+      await saveProduct(formData, activeTab, editingProduct?._id || null);
+      toast.success(editingProduct ? 'Товар успешно изменён' : 'Товар успешно добавлен');
       setShowProductModal(false);
       fetchProducts();
     } catch (err) {
@@ -281,8 +274,7 @@ const Products = () => {
     const ok = await confirm('Вы уверены, что хотите удалить этот товар?');
     if (!ok) return;
     try {
-      const endpoint = activeTab === 'youtube' ? '/products/youtube' : '/products/google-ads';
-      await api.request(`${endpoint}/${id}`, { method: 'DELETE' });
+      await deleteProduct(activeTab, id);
       fetchProducts();
       toast.success('Товар удалён');
     } catch (err) {
@@ -294,10 +286,10 @@ const Products = () => {
     e.preventDefault();
     try {
       if (editingFilter) {
-        await api.put(`/products/filters/${editingFilter._id}`, filterForm);
+        await updateFilter(editingFilter._id, filterForm);
         toast.success('Фильтр изменён');
       } else {
-        await api.post('/products/filters', filterForm);
+        await createFilter(filterForm);
         toast.success('Фильтр добавлен');
       }
       setShowFilterModal(false);
@@ -951,7 +943,7 @@ const Products = () => {
                   </div>
                   <div style={{ display: 'flex', gap: '0.25rem' }}>
                     <button onClick={() => { setEditingFilter(f); setFilterForm({ 'name.ru': f.name.ru || '', 'name.en': f.name.en || '', color: f.color }); }} style={{ padding: '0.25rem', backgroundColor: 'transparent', color: '#6b7280' }}><Edit2 size={12} /></button>
-                    <button onClick={async () => { const ok = await confirm('Удалить фильтр?'); if(ok) { await api.request(`/products/filters/${f._id}`, { method: 'DELETE' }); fetchFilters(); toast.success('Фильтр удалён'); } }} style={{ padding: '0.25rem', backgroundColor: 'transparent', color: '#ef4444' }}><Trash2 size={12} /></button>
+                    <button onClick={async () => { const ok = await confirm('Удалить фильтр?'); if(ok) { await deleteFilter(f._id); fetchFilters(); toast.success('Фильтр удалён'); } }} style={{ padding: '0.25rem', backgroundColor: 'transparent', color: '#ef4444' }}><Trash2 size={12} /></button>
                   </div>
                 </div>
               ))}

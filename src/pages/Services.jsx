@@ -4,7 +4,8 @@ import {
   ChevronLeft, ChevronRight, Image as ImageIcon, X, Check,
   Settings2, Calendar
 } from 'lucide-react';
-import api from '../api/client';
+import { getServices, saveService, deleteService } from '../api/services';
+import { getFilters } from '../api/products';
 import { useAuthStore } from '../stores/authStore';
 import { useConfirm } from '../components/ConfirmDialog';
 import { ImageUploadInput } from '../components/FileUploadInput';
@@ -42,7 +43,9 @@ const Services = () => {
     subDesc: 200,
     price: 100,
     filter: 150,
-    link: 180
+    link: 180,
+    necessaryData: 200,
+    implementationPeriod: 160
   });
 
   const copyToClipboard = (text) => {
@@ -96,7 +99,7 @@ const Services = () => {
 
   const fetchFilters = useCallback(async () => {
     try {
-      const data = await api.get('/products/filters');
+      const data = await getFilters();
       setFilters(data);
     } catch (err) {
       console.error('Fetch filters error:', err);
@@ -112,9 +115,9 @@ const Services = () => {
         filter: selectedFilter,
         startDate,
         endDate
-      }).toString();
+      });
       
-      const data = await api.get(`/services?${queryParams}`);
+      const data = await getServices(queryParams);
       setServices(data.services);
       setTotal(data.total);
       setPages(data.pages);
@@ -148,11 +151,15 @@ const Services = () => {
         price: service.price,
         filter_id: service.filter_id,
         path_image: service.path_image,
-        link: service.link || ''
+        link: service.link || '',
+        'necessary_data.ru': service.necessary_data?.ru || '',
+        'necessary_data.en': service.necessary_data?.en || '',
+        'implementation_period.ru': service.implementation_period?.ru || '',
+        'implementation_period.en': service.implementation_period?.en || ''
       });
     } else {
       setEditingService(null);
-      setServiceForm({ 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'sub_desc.ru': '', 'sub_desc.en': '', price: 0, filter_id: '', link: '' });
+      setServiceForm({ 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'sub_desc.ru': '', 'sub_desc.en': '', price: 0, filter_id: '', link: '', 'necessary_data.ru': '', 'necessary_data.en': '', 'implementation_period.ru': '', 'implementation_period.en': '' });
     }
     setImageFile(null);
     setShowServiceModal(true);
@@ -180,6 +187,10 @@ const Services = () => {
     formData.append('sub_desc.en', serviceForm['sub_desc.en'] || '');
     formData.append('price', serviceForm.price);
     formData.append('link', serviceForm.link || '');
+    formData.append('necessary_data.ru', serviceForm['necessary_data.ru'] || '');
+    formData.append('necessary_data.en', serviceForm['necessary_data.en'] || '');
+    formData.append('implementation_period.ru', serviceForm['implementation_period.ru'] || '');
+    formData.append('implementation_period.en', serviceForm['implementation_period.en'] || '');
     
     const filterId = serviceForm.filter_id?._id || serviceForm.filter_id || '';
     formData.append('filter_id', filterId);
@@ -189,13 +200,8 @@ const Services = () => {
     }
 
     try {
-      if (editingService) {
-        await api.request(`/services/${editingService._id}`, { method: 'PUT', body: formData });
-        toast.success('Услуга успешно изменена');
-      } else {
-        await api.request('/services', { method: 'POST', body: formData });
-        toast.success('Услуга успешно добавлена');
-      }
+      await saveService(formData, editingService?._id || null);
+      toast.success(editingService ? 'Услуга успешно изменена' : 'Услуга успешно добавлена');
       setShowServiceModal(false);
       fetchServices();
     } catch (err) {
@@ -207,7 +213,7 @@ const Services = () => {
     const ok = await confirm('Вы уверены, что хотите удалить эту услугу?');
     if (!ok) return;
     try {
-      await api.request(`/services/${id}`, { method: 'DELETE' });
+      await deleteService(id);
       fetchServices();
       toast.success('Услуга удалена');
     } catch (err) {
@@ -298,14 +304,20 @@ const Services = () => {
               <th style={{ width: `${columnWidths.link}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Ссылка <Resizer onResize={(w) => handleResize('link', w)} />
               </th>
+              <th style={{ width: `${columnWidths.necessaryData}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
+                Необх. данные <Resizer onResize={(w) => handleResize('necessaryData', w)} />
+              </th>
+              <th style={{ width: `${columnWidths.implementationPeriod}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
+                Срок реализации <Resizer onResize={(w) => handleResize('implementationPeriod', w)} />
+              </th>
               <th style={{ width: '120px', padding: '1rem 1.5rem', textAlign: 'right' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="10" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Загрузка...</td></tr>
+              <tr><td colSpan="12" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Загрузка...</td></tr>
             ) : services.length === 0 ? (
-              <tr><td colSpan="10" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Услуги не найдены</td></tr>
+              <tr><td colSpan="12" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Услуги не найдены</td></tr>
             ) : services.map(s => (
               <tr key={s._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <ClickableCell text={s._id} style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>{s._id.slice(-6)}</ClickableCell>
@@ -331,6 +343,12 @@ const Services = () => {
                 </ClickableCell>
                 <ClickableCell text={s.link || ''} style={{ fontSize: '0.8125rem', color: '#2563eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {s.link ? <a href={s.link} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }} onClick={e => e.stopPropagation()}>{s.link}</a> : '—'}
+                </ClickableCell>
+                <ClickableCell text={s.necessary_data?.ru || s.necessary_data?.en || ''} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.necessary_data?.ru || s.necessary_data?.en || <span style={{ color: '#d1d5db' }}>—</span>}
+                </ClickableCell>
+                <ClickableCell text={s.implementation_period?.ru || s.implementation_period?.en || ''} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.implementation_period?.ru || s.implementation_period?.en || <span style={{ color: '#d1d5db' }}>—</span>}
                 </ClickableCell>
                 <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
                   {canManage && (
@@ -404,6 +422,20 @@ const Services = () => {
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Ссылка</label>
                 <input type="url" placeholder="https://..." value={serviceForm.link || ''} onChange={(e) => setServiceForm({...serviceForm, link: e.target.value})} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Необходимые данные от клиента</label>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <textarea placeholder="Русский" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1, resize: 'vertical' }} value={serviceForm['necessary_data.ru'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'necessary_data.ru': e.target.value})} />
+                  <textarea placeholder="English" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1, resize: 'vertical' }} value={serviceForm['necessary_data.en'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'necessary_data.en': e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Срок реализации</label>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <input type="text" placeholder="Русский (напр.: 3-5 рабочих дней)" value={serviceForm['implementation_period.ru'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'implementation_period.ru': e.target.value})} style={{ flex: 1 }} />
+                  <input type="text" placeholder="English (e.g.: 3-5 business days)" value={serviceForm['implementation_period.en'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'implementation_period.en': e.target.value})} style={{ flex: 1 }} />
+                </div>
               </div>
               <ImageUploadInput
                 file={imageFile}

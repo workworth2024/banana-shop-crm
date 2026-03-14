@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, UserPlus, MoreVertical, Edit2, Key, Trash2, Check, X, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
-import api from '../api/client';
+import toast from 'react-hot-toast';
+import { getUsers, getRoles, createUser, updateUser, deleteUser } from '../api/users';
 import { useAuthStore } from '../stores/authStore';
 
 const Users = () => {
@@ -25,7 +26,8 @@ const Users = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.get(`/users?page=${currentPage}&search=${search}&role=${filterRole}&status=${filterStatus}`);
+      const params = new URLSearchParams({ page: currentPage, search, role: filterRole, status: filterStatus });
+      const data = await getUsers(params);
       setUsers(data.users);
       setTotal(data.total);
       setPages(data.pages);
@@ -43,7 +45,7 @@ const Users = () => {
 
   const fetchRoles = async () => {
     try {
-      const data = await api.get('/users/roles');
+      const data = await getRoles();
       setRoles(data);
     } catch (err) {
       console.error(err);
@@ -53,45 +55,48 @@ const Users = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/users', formData);
+      await createUser(formData);
       setShowCreateModal(false);
       setFormData({ username: '', email: '', password: '', role: 'new', status: true });
       fetchUsers();
+      toast.success('Пользователь создан');
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка создания');
     }
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/users/${selectedUser._id}`, formData);
+      await updateUser(selectedUser._id, formData);
       setShowEditModal(false);
       setSelectedUser(null);
       setFormData({ username: '', email: '', password: '', role: 'new', status: true });
       fetchUsers();
+      toast.success('Пользователь обновлён');
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка обновления');
     }
   };
 
   const toggleStatus = async (user) => {
     if (!isAdmin) return;
     try {
-      await api.put(`/users/${user._id}`, { status: !user.status });
+      await updateUser(user._id, { status: !user.status });
       fetchUsers();
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка смены статуса');
     }
   };
 
   const handleDelete = async (userId) => {
     if (!isAdmin || !window.confirm('Вы уверены?')) return;
     try {
-      await api.request(`/users/${userId}`, { method: 'DELETE' });
+      await deleteUser(userId);
       fetchUsers();
+      toast.success('Пользователь удалён');
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка удаления');
     }
   };
 

@@ -14,6 +14,8 @@ import Services from './pages/Services';
 import AccountSales from './pages/AccountSales';
 import Support from './pages/Support';
 import Reviews from './pages/Reviews';
+import ContactForms from './pages/ContactForms';
+import Preorders from './pages/Preorders';
 
 function App() {
   return (
@@ -42,6 +44,8 @@ function App() {
           <Route path="account-sales" element={<AccountSales />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="support" element={<Support />} />
+          <Route path="contact-forms" element={<ContactForms />} />
+          <Route path="preorders" element={<Preorders />} />
         </Route>
       </Routes>
     </Router>
