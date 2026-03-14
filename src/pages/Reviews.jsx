@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Edit2, Trash2,
-  ChevronLeft, ChevronRight, MessageSquare, X, Link as LinkIcon
+  ChevronLeft, ChevronRight, X, Link as LinkIcon, Image as ImageIcon
 } from 'lucide-react';
-import api from '../api/client';
+import toast from 'react-hot-toast';
+import { getReviews, deleteReview, saveReview } from '../api/reviews';
 import { useAuthStore } from '../stores/authStore';
+import { ImageUploadInput } from '../components/FileUploadInput';
 
 const Reviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -17,14 +19,16 @@ const Reviews = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingReview, setEditingReview] = useState(null);
   const [form, setForm] = useState({ 'text.ru': '', 'text.en': '', link: '' });
+  const [imageFile, setImageFile] = useState(null);
 
   const { user } = useAuthStore();
   const canManage = user?.role === 'admin' || user?.role === 'manager';
 
   const [columnWidths, setColumnWidths] = useState({
     id: 80,
-    textRu: 280,
-    textEn: 280,
+    image: 80,
+    textRu: 250,
+    textEn: 250,
     link: 200
   });
 
@@ -74,8 +78,8 @@ const Reviews = () => {
   const fetchReviews = useCallback(async () => {
     setLoading(true);
     try {
-      const queryParams = new URLSearchParams({ page: currentPage, search }).toString();
-      const data = await api.get(`/reviews?${queryParams}`);
+      const queryParams = new URLSearchParams({ page: currentPage, search });
+      const data = await getReviews(queryParams);
       setReviews(data.reviews);
       setTotal(data.total);
       setPages(data.pages);
@@ -102,35 +106,42 @@ const Reviews = () => {
       setEditingReview(null);
       setForm({ 'text.ru': '', 'text.en': '', link: '' });
     }
+    setImageFile(null);
     setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form['text.ru'] && !form['text.en']) {
-      alert('Текст должен быть заполнен на русском или английском языке');
+      toast.error('Текст должен быть заполнен на русском или английском языке');
       return;
     }
+
+    const formData = new FormData();
+    formData.append('text.ru', form['text.ru'] || '');
+    formData.append('text.en', form['text.en'] || '');
+    formData.append('link', form.link || '');
+    if (imageFile) formData.append('image', imageFile);
+
+    const isEdit = !!editingReview;
     try {
-      if (editingReview) {
-        await api.put(`/reviews/${editingReview._id}`, form);
-      } else {
-        await api.post('/reviews', form);
-      }
+      await saveReview(formData, isEdit ? editingReview._id : null);
       setShowModal(false);
       fetchReviews();
+      toast.success(isEdit ? 'Отзыв обновлён' : 'Отзыв добавлен');
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка сохранения');
     }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Удалить отзыв?')) return;
     try {
-      await api.delete(`/reviews/${id}`);
+      await deleteReview(id);
       fetchReviews();
+      toast.success('Отзыв удалён');
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Ошибка удаления');
     }
   };
 
@@ -169,6 +180,9 @@ const Reviews = () => {
               <th style={{ width: `${columnWidths.id}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 ID <Resizer onResize={(w) => handleResize('id', w)} />
               </th>
+              <th style={{ width: `${columnWidths.image}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
+                Фото <Resizer onResize={(w) => handleResize('image', w)} />
+              </th>
               <th style={{ width: `${columnWidths.textRu}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Текст (RU) <Resizer onResize={(w) => handleResize('textRu', w)} />
               </th>
@@ -183,14 +197,27 @@ const Reviews = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="5" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Загрузка...</td></tr>
+              <tr><td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Загрузка...</td></tr>
             ) : reviews.length === 0 ? (
-              <tr><td colSpan="5" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Отзывы не найдены</td></tr>
+              <tr><td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Отзывы не найдены</td></tr>
             ) : reviews.map(r => (
               <tr key={r._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <ClickableCell text={r._id} style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>
                   {r._id.slice(-6)}
                 </ClickableCell>
+                <td style={{ padding: '0.75rem 1.5rem' }}>
+                  {r.image ? (
+                    <img
+                      src={`${import.meta.env.VITE_API_URL}${r.image}`}
+                      alt="review"
+                      style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+                    />
+                  ) : (
+                    <div style={{ width: '48px', height: '48px', borderRadius: '8px', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ImageIcon size={18} color="#d1d5db" />
+                    </div>
+                  )}
+                </td>
                 <ClickableCell text={r.text?.ru || ''} style={{ fontSize: '0.875rem', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {r.text?.ru || <span style={{ color: '#d1d5db' }}>—</span>}
                 </ClickableCell>
@@ -245,7 +272,7 @@ const Reviews = () => {
 
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '600px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-main)' }}>
                 {editingReview ? 'Редактировать отзыв' : 'Добавить отзыв'}
@@ -256,6 +283,13 @@ const Reviews = () => {
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <ImageUploadInput
+                label="Фото отзыва (необязательно)"
+                file={imageFile}
+                onChange={setImageFile}
+                currentImageUrl={editingReview?.image || ''}
+              />
+
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
                   Текст (RU)

@@ -4,7 +4,8 @@ import {
   ChevronLeft, ChevronRight, FileText, X, Check,
   Settings2, Calendar, Link as LinkIcon, Download, PenLine
 } from 'lucide-react';
-import api from '../api/client';
+import { getManuals, deleteManual } from '../api/manuals';
+import { getFilters } from '../api/products';
 import { useAuthStore } from '../stores/authStore';
 import ArticleEditor from '../components/ArticleEditor';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -98,7 +99,7 @@ const Manuals = () => {
 
   const fetchFilters = useCallback(async () => {
     try {
-      const data = await api.get('/products/filters');
+      const data = await getFilters();
       setFilters(data);
     } catch (err) {
       console.error('Fetch filters error:', err);
@@ -114,9 +115,9 @@ const Manuals = () => {
         filter: selectedFilter,
         startDate,
         endDate
-      }).toString();
+      });
       
-      const data = await api.get(`/manuals?${queryParams}`);
+      const data = await getManuals(queryParams);
       setManuals(data.manuals);
       setTotal(data.total);
       setPages(data.pages);
@@ -219,7 +220,7 @@ const Manuals = () => {
     const ok = await confirm('Вы уверены, что хотите удалить этот мануал?');
     if (!ok) return;
     try {
-      await api.request(`/manuals/${id}`, { method: 'DELETE' });
+      await deleteManual(id);
       fetchManuals();
       toast.success('Мануал удалён');
     } catch (err) {
