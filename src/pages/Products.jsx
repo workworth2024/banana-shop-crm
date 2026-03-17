@@ -7,6 +7,7 @@ import {
 import { getFilters, createFilter, updateFilter, deleteFilter, getYoutubeProducts, getGoogleAdsProducts, saveProduct, deleteProduct } from '../api/products';
 import { useAuthStore } from '../stores/authStore';
 import countries from '../utils/countries.json';
+import ACCOUNT_TYPES from '../constants/accountTypes';
 import { useConfirm } from '../components/ConfirmDialog';
 import { ImageUploadInput } from '../components/FileUploadInput';
 import toast from 'react-hot-toast';
@@ -428,39 +429,20 @@ const Products = () => {
                 </>
               ) : (
                 <>
-                  <button 
-                    onClick={() => setSelectedType('self-farm')}
-                    style={{ 
-                      padding: '0.5rem 1rem', fontSize: '0.8125rem',
-                      backgroundColor: selectedType === 'self-farm' ? 'var(--primary)' : '#f3f4f6',
-                      color: selectedType === 'self-farm' ? 'white' : '#4b5563',
-                      border: 'none'
-                    }}
-                  >
-                    Self-Farm
-                  </button>
-                  <button 
-                    onClick={() => setSelectedType('autofarm')}
-                    style={{ 
-                      padding: '0.5rem 1rem', fontSize: '0.8125rem',
-                      backgroundColor: selectedType === 'autofarm' ? 'var(--primary)' : '#f3f4f6',
-                      color: selectedType === 'autofarm' ? 'white' : '#4b5563',
-                      border: 'none'
-                    }}
-                  >
-                    Autofarm
-                  </button>
-                  <button 
-                    onClick={() => setSelectedType('spend')}
-                    style={{ 
-                      padding: '0.5rem 1rem', fontSize: '0.8125rem',
-                      backgroundColor: selectedType === 'spend' ? 'var(--primary)' : '#f3f4f6',
-                      color: selectedType === 'spend' ? 'white' : '#4b5563',
-                      border: 'none'
-                    }}
-                  >
-                    Spend
-                  </button>
+                  {Object.entries(ACCOUNT_TYPES).map(([key, labels]) => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedType(key)}
+                      style={{
+                        padding: '0.5rem 1rem', fontSize: '0.8125rem',
+                        backgroundColor: selectedType === key ? 'var(--primary)' : '#f3f4f6',
+                        color: selectedType === key ? 'white' : '#4b5563',
+                        border: 'none'
+                      }}
+                    >
+                      {labels.ru}
+                    </button>
+                  ))}
                 </>
               )}
             </div>
@@ -759,17 +741,16 @@ const Products = () => {
               <div style={{ width: '150px' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Тип</label>
                 <select value={productForm.type || ''} onChange={(e) => setProductForm({...productForm, type: e.target.value})} required>
+                  <option value="" disabled>— выберите тип —</option>
                   {activeTab === 'youtube' ? (
                     <>
                       <option value="item">Аккаунты</option>
                       <option value="service">Услуги</option>
                     </>
                   ) : (
-                    <>
-                      <option value="self-farm">Self-Farm</option>
-                      <option value="autofarm">Autofarm</option>
-                      <option value="spend">Spend</option>
-                    </>
+                    Object.entries(ACCOUNT_TYPES).map(([key, labels]) => (
+                      <option key={key} value={key}>{labels.ru}</option>
+                    ))
                   )}
                 </select>
               </div>
