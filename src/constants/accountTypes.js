@@ -30,6 +30,10 @@ const ACCOUNT_TYPES = {
   'old-spended-heavy': {
     ru: 'Старые аккаунты (1 год+, спенд 50$+)',
     en: 'Old accounts (1+ year, spend $50+)'
+  },
+  'no-farm': {
+    ru: 'Без фарма',
+    en: 'No Farm'
   }
 }
 
