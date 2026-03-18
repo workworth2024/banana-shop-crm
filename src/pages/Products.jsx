@@ -208,7 +208,7 @@ const Products = () => {
       setEditingProduct(null);
       setProductForm(activeTab === 'youtube' 
         ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', link: '', wholesale_price: '', count_for_wholesale: '' }
-        : { type: 'self-farm', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'inclusive.ru': '', 'inclusive.en': '', 'receive.ru': '', 'receive.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', link: '', wholesale_price: '', count_for_wholesale: '' }
+        : { type: '', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'inclusive.ru': '', 'inclusive.en': '', 'receive.ru': '', 'receive.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', link: '', wholesale_price: '', count_for_wholesale: '' }
       );
       setGeoSearch('');
     }
