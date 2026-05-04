@@ -198,7 +198,7 @@ const Sidebar = () => {
 
         <SidebarItem to="/" icon={LayoutDashboard} label="Главная" />
         <SidebarItem to="/users" icon={UsersIcon} label="Пользователи" />
-        <SidebarItemDisabled icon={UserCheck} label="Клиенты" />
+        <SidebarItem to="/clients" icon={UserCheck} label="Клиенты" />
         <SidebarItemDisabled icon={ShoppingCart} label="История покупок" />
         <SidebarItem to="/products" icon={Package} label="Товары" />
         <SidebarItem to="/preorders" icon={ClipboardList} label="Предзаказы" />

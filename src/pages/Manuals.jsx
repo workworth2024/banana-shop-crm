@@ -210,14 +210,13 @@ const Manuals = () => {
 
     const isEdit = !!editingManual;
     const url = `${import.meta.env.VITE_API_URL}/api/v3/${isEdit ? `manuals/${editingManual._id}` : 'manuals'}`;
-    const token = localStorage.getItem('token');
 
     try {
       setUploadProgress(manualFile ? 0 : null);
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open(isEdit ? 'PUT' : 'POST', url);
-        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.withCredentials = true;
         if (manualFile) {
           xhr.upload.onprogress = (ev) => {
             if (ev.lengthComputable) setUploadProgress(Math.round((ev.loaded / ev.total) * 100));

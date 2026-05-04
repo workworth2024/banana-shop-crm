@@ -1,4 +1,9 @@
 const ACCOUNT_TYPES = {
+  
+  'no-farm': {
+    ru: 'Без фарма',
+    en: 'No Farm'
+  },
   'self-reg-farm-no-num': {
     ru: 'Фарм без номера (14+ дней прогрева)',
     en: 'Farm without number (14+ days warm-up)'
@@ -30,10 +35,6 @@ const ACCOUNT_TYPES = {
   'old-spended-heavy': {
     ru: 'Старые аккаунты (1 год+, спенд 50$+)',
     en: 'Old accounts (1+ year, spend $50+)'
-  },
-  'no-farm': {
-    ru: 'Без фарма',
-    en: 'No Farm'
   }
 }
 

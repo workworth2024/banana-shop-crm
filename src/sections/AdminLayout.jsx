@@ -5,7 +5,7 @@ import { useAuthStore } from '../stores/authStore';
 import { LogOut, User as UserIcon, Bell, Search } from 'lucide-react';
 
 const AdminLayout = () => {
-  const { user, logout, checkAuth, isAuthenticated } = useAuthStore();
+  const { user, logout, checkAuth, isAuthenticated, authChecked } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -13,17 +13,17 @@ const AdminLayout = () => {
   }, [checkAuth]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (authChecked && !isAuthenticated) {
       navigate('/login');
     }
-  }, [isAuthenticated, navigate]);
+  }, [authChecked, isAuthenticated, navigate]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
-  if (!user && isAuthenticated) {
+  if (!authChecked) {
     return (
       <div style={{ 
         display: 'flex', 

@@ -1,24 +1,15 @@
-const BASE_URL = `${import.meta.env.VITE_API_URL}/api/v3`;
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v3';
 
 const api = {
   async request(endpoint, options = {}) {
     const url = `${BASE_URL}${endpoint}`;
-    
-    // Get token from localStorage
-    const token = localStorage.getItem('token');
-    
+
     const headers = {
       ...options.headers
     };
 
-    // Only set Content-Type if not using FormData
     if (!(options.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
-    }
-
-    // Automatically add Authorization header if token exists
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
     }
 
     try {
@@ -31,10 +22,6 @@ const api = {
       const data = await response.json();
 
       if (!response.ok) {
-        // If 401, token might be invalid
-        if (response.status === 401) {
-          localStorage.removeItem('token');
-        }
         throw new Error(data.message || 'Network response was not ok');
       }
 
@@ -57,6 +44,14 @@ const api = {
       ...options,
       method: 'PUT',
       body: JSON.stringify(body)
+    });
+  },
+
+  patch(endpoint, body, options = {}) {
+    return this.request(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: body instanceof FormData ? body : JSON.stringify(body)
     });
   },
 
