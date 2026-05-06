@@ -246,7 +246,6 @@ const Products = () => {
     }
     
     formData.append('price', productForm.price);
-    formData.append('counts', productForm.counts);
     formData.append('geo', productForm.geo);
     formData.append('link', productForm.link || '');
     if (productForm.wholesale_price !== '' && productForm.wholesale_price !== null) {
@@ -864,7 +863,6 @@ const Products = () => {
 
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ flex: 1 }}><label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Цена ($)</label><input type="number" step="0.01" value={productForm.price || 0} onChange={(e) => setProductForm({...productForm, price: e.target.value})} required /></div>
-                <div style={{ flex: 1 }}><label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Кол-во</label><input type="number" value={productForm.counts || 0} onChange={(e) => setProductForm({...productForm, counts: e.target.value})} required /></div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Фильтр</label>
                   <select value={productForm.filter_id?._id || productForm.filter_id || ''} onChange={(e) => setProductForm({...productForm, filter_id: e.target.value})}>

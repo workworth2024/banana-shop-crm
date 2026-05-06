@@ -14,7 +14,8 @@ import {
   ChevronRight,
   ChevronDown,
   MessageSquare,
-  ClipboardList
+  ClipboardList,
+  Activity
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, label }) => (
@@ -211,6 +212,7 @@ const Sidebar = () => {
           <SidebarSubItem to="/support" icon={LifeBuoy} label="Поддержка" />
           <SidebarSubItem to="/contact-forms" icon={MessageSquare} label="Формы связи" />
         </SidebarGroupItem>
+        <SidebarItem to="/health" icon={Activity} label="Health Server" />
       </nav>
 
       <div style={{

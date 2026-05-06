@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, Upload, Download, Trash2, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Upload, Download, Trash2, RefreshCw, Copy, Check, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v3';
@@ -28,6 +28,25 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false);
+  const handle = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+  return (
+    <button
+      onClick={handle}
+      title="Копировать UID"
+      style={{ padding: '0.25rem 0.45rem', background: copied ? '#ecfdf5' : '#f3f4f6', color: copied ? '#059669' : '#6b7280', border: 'none', borderRadius: '5px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+    >
+      {copied ? <Check size={11} /> : <Copy size={11} />}
+    </button>
+  );
+}
+
 function DigitalInventoryModal({ product, productType, onClose, onCountsChanged }) {
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({ available: 0, sold: 0 });
@@ -35,17 +54,29 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
   const [pages, setPages] = useState(1);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [downloadingUid, setDownloadingUid] = useState(null);
+  const [ramLow, setRamLow] = useState(false);
   const fileInputRef = useRef(null);
 
-  const fetchItems = async (p = 1) => {
+  useEffect(() => {
+    apiFetch('/health/stats').then(async (r) => {
+      const d = await r.json();
+      if (d.memory && d.memory.freePercent < 10) setRamLow(true);
+    }).catch(() => {});
+  }, []);
+
+  const fetchItems = useCallback(async (p = 1) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: p, limit: 20 });
       if (statusFilter) params.set('status', statusFilter);
+      if (search) params.set('search', search);
       const res = await apiFetch(
         `/digital-items/admin/${productType}/${product._id}?${params}`
       );
@@ -59,13 +90,13 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter, search, product._id, productType]);
 
-  useEffect(() => { fetchItems(page); }, [page, statusFilter]);
+  useEffect(() => { fetchItems(page); }, [page, statusFilter, search]);
 
-  const handleUpload = async (e) => {
-    const files = e.target.files;
+  const handleFiles = async (files) => {
     if (!files || files.length === 0) return;
+    if (ramLow) { toast.error('Загрузка заблокирована: свободной RAM < 10%'); return; }
     const fd = new FormData();
     for (const f of files) fd.append('files', f);
     setUploading(true);
@@ -85,6 +116,16 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const handleInputChange = (e) => handleFiles(e.target.files);
+
+  const handleDragOver = (e) => { e.preventDefault(); setDragOver(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); setDragOver(false); };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    handleFiles(e.dataTransfer.files);
   };
 
   const handleDelete = async (id) => {
@@ -122,11 +163,17 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
     }
   };
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    setSearch(searchInput);
+    setPage(1);
+  };
+
   const titleStr = product.title?.ru || product.title?.en || product.name || product._id;
 
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-      <div style={{ backgroundColor: '#fff', borderRadius: '20px', width: '100%', maxWidth: '780px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+      <div style={{ backgroundColor: '#fff', borderRadius: '20px', width: '100%', maxWidth: '820px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
 
         {/* Header */}
         <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -147,32 +194,61 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
           </div>
         </div>
 
+        {/* RAM warning */}
+        {ramLow && (
+          <div style={{ padding: '0.6rem 2rem', background: '#fef2f2', color: '#dc2626', fontSize: '0.875rem', fontWeight: '600', flexShrink: 0 }}>
+            ⚠️ Свободной RAM менее 10% — загрузка файлов заблокирована
+          </div>
+        )}
+
         {/* Upload zone */}
         <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
-          <label
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => !uploading && !ramLow && fileInputRef.current?.click()}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
-              padding: '1rem', border: '2px dashed #e5e7eb', borderRadius: '12px',
-              cursor: uploading ? 'not-allowed' : 'pointer', background: '#fafafa',
-              transition: 'border-color 0.2s', color: '#6b7280', fontWeight: '500', fontSize: '0.9rem'
+              padding: '1rem', border: `2px dashed ${dragOver ? '#eab308' : ramLow ? '#fca5a5' : '#e5e7eb'}`,
+              borderRadius: '12px', cursor: uploading || ramLow ? 'not-allowed' : 'pointer',
+              background: dragOver ? '#fefce8' : ramLow ? '#fff7f7' : '#fafafa',
+              transition: 'all 0.2s', color: '#6b7280', fontWeight: '500', fontSize: '0.9rem',
+              userSelect: 'none'
             }}
-            onDragOver={(e) => e.preventDefault()}
           >
             <Upload size={20} />
-            {uploading ? 'Загрузка...' : 'Выберите или перетащите файлы сюда'}
+            {uploading ? 'Загрузка...' : ramLow ? 'Загрузка заблокирована (мало RAM)' : dragOver ? 'Отпустите для загрузки' : 'Выберите или перетащите файлы сюда'}
             <input
               ref={fileInputRef}
               type="file"
               multiple
               style={{ display: 'none' }}
-              onChange={handleUpload}
-              disabled={uploading}
+              onChange={handleInputChange}
+              disabled={uploading || ramLow}
             />
-          </label>
+          </div>
         </div>
 
-        {/* Filters row */}
-        <div style={{ padding: '0.75rem 2rem', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: '0.75rem', alignItems: 'center', flexShrink: 0 }}>
+        {/* Filters + Search row */}
+        <div style={{ padding: '0.75rem 2rem', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: '0.75rem', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
+          <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '0.4rem', flex: 1, minWidth: '200px' }}>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Поиск по имени файла или UID..."
+              style={{ flex: 1, padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.875rem', outline: 'none', background: '#fff', color: '#374151' }}
+            />
+            <button type="submit" style={{ padding: '0.4rem 0.7rem', background: '#eab308', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Search size={14} />
+            </button>
+            {search && (
+              <button type="button" onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }} style={{ padding: '0.4rem 0.65rem', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                ✕
+              </button>
+            )}
+          </form>
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -212,7 +288,7 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
               <tbody>
                 {items.map((item) => (
                   <tr key={item._id} style={{ borderBottom: '1px solid #f9fafb' }}>
-                    <td style={{ padding: '0.6rem 0.75rem', maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.originalName}>
+                    <td style={{ padding: '0.6rem 0.75rem', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.originalName}>
                       {item.originalName}
                     </td>
                     <td style={{ padding: '0.6rem 0.75rem', color: '#6b7280' }}>{formatSize(item.fileSize)}</td>
@@ -221,13 +297,18 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
                         {STATUS_LABELS[item.status] || item.status}
                       </span>
                     </td>
-                    <td style={{ padding: '0.6rem 0.75rem', fontFamily: 'monospace', fontSize: '0.78rem', color: '#9ca3af' }}>{item.uid}</td>
+                    <td style={{ padding: '0.6rem 0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#9ca3af' }}>{item.uid}</span>
+                        <CopyButton text={item.uid} />
+                      </div>
+                    </td>
                     <td style={{ padding: '0.6rem 0.75rem', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
                         <button
                           onClick={() => handleDownload(item.uid, item.originalName)}
                           disabled={downloadingUid === item.uid}
-                          style={{ padding: '0.35rem 0.6rem', background: '#eff6ff', color: '#3b82f6', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
+                          style={{ padding: '0.35rem 0.6rem', background: '#eff6ff', color: '#3b82f6', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', opacity: downloadingUid === item.uid ? 0.6 : 1 }}
                           title="Скачать"
                         >
                           <Download size={13} />
@@ -236,7 +317,7 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
                           <button
                             onClick={() => handleDelete(item._id)}
                             disabled={deletingId === item._id}
-                            style={{ padding: '0.35rem 0.6rem', background: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
+                            style={{ padding: '0.35rem 0.6rem', background: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', opacity: deletingId === item._id ? 0.6 : 1 }}
                             title="Удалить"
                           >
                             <Trash2 size={13} />
@@ -254,17 +335,9 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
         {/* Pagination */}
         {pages > 1 && (
           <div style={{ padding: '0.75rem 2rem', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
-            <button
-              disabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
-              style={{ padding: '0.4rem 0.75rem', background: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: page === 1 ? 0.5 : 1 }}
-            >‹</button>
+            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '0.4rem 0.75rem', background: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: page === 1 ? 0.5 : 1 }}>‹</button>
             <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{page} / {pages}</span>
-            <button
-              disabled={page >= pages}
-              onClick={() => setPage(p => p + 1)}
-              style={{ padding: '0.4rem 0.75rem', background: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: page >= pages ? 0.5 : 1 }}
-            >›</button>
+            <button disabled={page >= pages} onClick={() => setPage(p => p + 1)} style={{ padding: '0.4rem 0.75rem', background: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: page >= pages ? 0.5 : 1 }}>›</button>
           </div>
         )}
       </div>
