@@ -10,6 +10,7 @@ import countries from '../utils/countries.json';
 import ACCOUNT_TYPES from '../constants/accountTypes';
 import { useConfirm } from '../components/ConfirmDialog';
 import { ImageUploadInput } from '../components/FileUploadInput';
+import DigitalInventoryModal from '../components/DigitalInventoryModal';
 import toast from 'react-hot-toast';
 
 const Products = () => {
@@ -31,6 +32,7 @@ const Products = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingFilter, setEditingFilter] = useState(null);
+  const [inventoryProduct, setInventoryProduct] = useState(null);
 
   const { user } = useAuthStore();
   const canManage = user?.role === 'admin' || user?.role === 'manager';
@@ -696,6 +698,9 @@ const Products = () => {
                 <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
                   {canManage && (
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button onClick={() => setInventoryProduct({ product: p, productType: activeTab === 'youtube' ? 'YoutubeProduct' : 'GoogleAdsProduct' })} style={{ padding: '0.5rem', backgroundColor: '#ecfdf5', color: '#059669', borderRadius: '8px' }} title="Файлы / Инвентарь">
+                        <Package size={16} />
+                      </button>
                       <button onClick={() => openProductModal(p)} style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', color: '#4b5563', borderRadius: '8px' }} title="Редактировать">
                         <Edit2 size={16} />
                       </button>
@@ -898,6 +903,22 @@ const Products = () => {
       )}
 
       {ConfirmNode}
+
+      {/* Digital Inventory Modal */}
+      {inventoryProduct && (
+        <DigitalInventoryModal
+          product={inventoryProduct.product}
+          productType={inventoryProduct.productType}
+          onClose={() => setInventoryProduct(null)}
+          onCountsChanged={(newCount) => {
+            setProducts((prev) =>
+              prev.map((p) =>
+                p._id === inventoryProduct.product._id ? { ...p, counts: newCount } : p
+              )
+            );
+          }}
+        />
+      )}
 
       {/* Filter Modal (same as before) */}
       {showFilterModal && (

@@ -211,6 +211,11 @@ const Clients = () => {
                   <div style={{ fontSize: '0.8125rem', color: '#6b7280' }}>{c.email}</div>
                 </td>
                 <td style={{ padding: '1rem 1.5rem' }}>
+                  {c.telegramId ? (
+                    <div style={{ fontSize: '0.78rem', color: '#6b7280', fontFamily: 'monospace', marginBottom: '0.2rem' }}>
+                      ID: {c.telegramId}
+                    </div>
+                  ) : null}
                   {c.telegramUsername ? (
                     <span style={{ fontSize: '0.875rem', color: '#0ea5e9' }}>@{c.telegramUsername}</span>
                   ) : (
@@ -314,7 +319,8 @@ const Clients = () => {
                 { label: 'UID', value: `#${selectedClient.uid}` },
                 { label: 'Username', value: selectedClient.username },
                 { label: 'Email', value: selectedClient.email },
-                { label: 'Telegram', value: selectedClient.telegramUsername ? `@${selectedClient.telegramUsername}` : '—' },
+                { label: 'Telegram ID', value: selectedClient.telegramId || '—' },
+                { label: 'Telegram ник', value: selectedClient.telegramUsername ? `@${selectedClient.telegramUsername}` : '—' },
                 { label: 'Баланс', value: `$${selectedClient.balance.toFixed(2)}` },
                 { label: 'Реферальный код', value: selectedClient.referralCode },
                 { label: '2FA', value: selectedClient.twoFAEnabled ? 'Включён' : 'Выключен' },
