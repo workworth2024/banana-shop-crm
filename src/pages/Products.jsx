@@ -613,7 +613,7 @@ const Products = () => {
               <th style={{ width: `${columnWidths.countWholesale}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Кол-во опт <Resizer onResize={(w) => handleResize('countWholesale', w)} />
               </th>
-              <th style={{ width: '120px', padding: '1rem 1.5rem', textAlign: 'right' }}>Действия</th>
+              <th style={{ width: '120px', padding: '1rem 1.5rem', textAlign: 'right', position: 'sticky', right: 0, background: '#f9fafb', zIndex: 3, boxShadow: '-2px 0 6px rgba(0,0,0,0.06)' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -694,16 +694,16 @@ const Products = () => {
                 <ClickableCell text={p.count_for_wholesale != null ? p.count_for_wholesale.toString() : ''}>
                   {p.count_for_wholesale != null ? `${p.count_for_wholesale} шт.` : '—'}
                 </ClickableCell>
-                <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
+                <td style={{ padding: '1rem 1.5rem', textAlign: 'right', position: 'sticky', right: 0, background: 'white', zIndex: 2, boxShadow: '-2px 0 6px rgba(0,0,0,0.06)' }}>
                   {canManage && (
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <button onClick={() => setInventoryProduct({ product: p, productType: activeTab === 'youtube' ? 'YoutubeProduct' : 'GoogleAdsProduct' })} style={{ padding: '0.5rem', backgroundColor: '#ecfdf5', color: '#059669', borderRadius: '8px' }} title="Файлы / Инвентарь">
+                      <button onClick={() => setInventoryProduct({ product: p, productType: activeTab === 'youtube' ? 'YoutubeProduct' : 'GoogleAdsProduct' })} style={{ padding: '0.5rem', backgroundColor: '#ecfdf5', color: '#059669', borderRadius: '8px', border: 'none', cursor: 'pointer', flexShrink: 0 }} title="Файлы / Инвентарь">
                         <Package size={16} />
                       </button>
-                      <button onClick={() => openProductModal(p)} style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', color: '#4b5563', borderRadius: '8px' }} title="Редактировать">
+                      <button onClick={() => openProductModal(p)} style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', color: '#4b5563', borderRadius: '8px', border: 'none', cursor: 'pointer', flexShrink: 0 }} title="Редактировать">
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={() => handleDeleteProduct(p._id)} style={{ padding: '0.5rem', backgroundColor: '#fef2f2', color: '#ef4444', borderRadius: '8px' }} title="Удалить">
+                      <button onClick={() => handleDeleteProduct(p._id)} style={{ padding: '0.5rem', backgroundColor: '#fef2f2', color: '#ef4444', borderRadius: '8px', border: 'none', cursor: 'pointer', flexShrink: 0 }} title="Удалить">
                         <Trash2 size={16} />
                       </button>
                     </div>
