@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Check, X, ChevronLeft, ChevronRight, DollarSign, Eye, RefreshCw, KeyRound } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Check, X, ChevronLeft, ChevronRight, DollarSign, Eye, RefreshCw, KeyRound, ShoppingCart, ArrowLeftRight, Repeat2, Briefcase } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getClients, toggleClientStatus, adjustClientBalance, resetClientPassword } from '../api/clients';
 import { useAuthStore } from '../stores/authStore';
@@ -21,9 +22,35 @@ const StatusBadge = ({ active }) => (
   </span>
 );
 
+const OnlineBadge = ({ isOnline }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+    <div style={{
+      width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
+      backgroundColor: isOnline ? '#10b981' : '#9ca3af',
+      boxShadow: isOnline ? '0 0 6px #10b981' : 'none'
+    }} />
+    <span style={{ fontSize: '0.75rem', color: isOnline ? '#059669' : '#9ca3af', fontWeight: '600' }}>
+      {isOnline ? 'Online' : 'Offline'}
+    </span>
+  </div>
+);
+
+function formatLastSeen(date) {
+  if (!date) return 'Никогда';
+  const d = new Date(date);
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Только что';
+  if (mins < 60) return `${mins} мин. назад`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} ч. назад`;
+  return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
 const Clients = () => {
   const { user: currentUser } = useAuthStore();
   const isAdmin = currentUser?.role === 'admin';
+  const navigate = useNavigate();
 
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -135,6 +162,23 @@ const Clients = () => {
     setShowDetailModal(true);
   };
 
+  const navToOrders = (username) => {
+    setShowDetailModal(false);
+    navigate(`/orders?search=${encodeURIComponent(username)}`);
+  };
+  const navToReplacements = (username) => {
+    setShowDetailModal(false);
+    navigate(`/orders/replacements?search=${encodeURIComponent(username)}`);
+  };
+  const navToServices = (username) => {
+    setShowDetailModal(false);
+    navigate(`/orders/services?search=${encodeURIComponent(username)}`);
+  };
+  const navToTransactions = (username) => {
+    setShowDetailModal(false);
+    navigate(`/transactions?search=${encodeURIComponent(username)}`);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -150,7 +194,6 @@ const Clients = () => {
         </button>
       </div>
 
-      {/* Filters */}
       <div style={{
         backgroundColor: 'white',
         padding: '1.5rem',
@@ -182,7 +225,6 @@ const Clients = () => {
         </select>
       </div>
 
-      {/* Table */}
       <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -190,16 +232,17 @@ const Clients = () => {
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>UID / Дата</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Клиент</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Telegram</th>
-              <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Баланс (USD)</th>
+              <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Баланс</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Статус</th>
+              <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Online</th>
               <th style={{ padding: '1rem 1.5rem', textAlign: 'right' }}></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Загрузка...</td></tr>
+              <tr><td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Загрузка...</td></tr>
             ) : clients.length === 0 ? (
-              <tr><td colSpan="6" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Клиенты не найдены</td></tr>
+              <tr><td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Клиенты не найдены</td></tr>
             ) : clients.map((c) => (
               <tr key={c._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '1rem 1.5rem' }}>
@@ -229,6 +272,14 @@ const Clients = () => {
                 </td>
                 <td style={{ padding: '1rem 1.5rem' }}>
                   <StatusBadge active={c.status} />
+                </td>
+                <td style={{ padding: '1rem 1.5rem' }}>
+                  <OnlineBadge isOnline={c.isOnline} />
+                  {!c.isOnline && c.lastSeen && (
+                    <div style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: '0.15rem' }}>
+                      {formatLastSeen(c.lastSeen)}
+                    </div>
+                  )}
                 </td>
                 <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -276,7 +327,6 @@ const Clients = () => {
           </tbody>
         </table>
 
-        {/* Pagination */}
         <div style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e5e7eb' }}>
           <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
             Всего: <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>{total}</span> клиентов
@@ -303,18 +353,20 @@ const Clients = () => {
         </div>
       </div>
 
-      {/* Detail Modal */}
       {showDetailModal && selectedClient && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '20px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '20px', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontWeight: '700' }}>Карточка клиента</h2>
+              <div>
+                <h2 style={{ fontWeight: '700' }}>Карточка клиента</h2>
+                <div style={{ marginTop: '0.4rem' }}><OnlineBadge isOnline={selectedClient.isOnline} /></div>
+              </div>
               <button type="button" onClick={() => setShowDetailModal(false)} style={{ padding: '0.5rem', backgroundColor: '#d1d5db', color: '#111827', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
               {[
                 { label: 'UID', value: `#${selectedClient.uid}` },
                 { label: 'Username', value: selectedClient.username },
@@ -325,23 +377,46 @@ const Clients = () => {
                 { label: 'Реферальный код', value: selectedClient.referralCode },
                 { label: '2FA', value: selectedClient.twoFAEnabled ? 'Включён' : 'Выключен' },
                 { label: 'Статус', value: selectedClient.status ? 'Активен' : 'Заблокирован' },
+                { label: 'Последняя активность', value: selectedClient.isOnline ? 'Сейчас онлайн' : formatLastSeen(selectedClient.lastSeen) },
                 { label: 'Зарегистрирован', value: new Date(selectedClient.createdAt).toLocaleString('ru-RU') },
               ].map(({ label, value }) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f3f4f6' }}>
                   <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '500' }}>{label}</span>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-main)' }}>{value}</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-main)', textAlign: 'right', maxWidth: '60%', wordBreak: 'break-word' }}>{value}</span>
                 </div>
               ))}
             </div>
 
-            <button onClick={() => setShowDetailModal(false)} style={{ marginTop: '1.5rem', width: '100%', backgroundColor: '#f3f4f6', color: '#4b5563' }}>
+            <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.72rem', color: '#6b7280', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>Перейти к данным клиента</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                {[
+                  { label: 'Заказы', icon: ShoppingCart, color: '#3b82f6', bg: '#eff6ff', action: () => navToOrders(selectedClient.username) },
+                  { label: 'Замены', icon: Repeat2, color: '#8b5cf6', bg: '#f5f3ff', action: () => navToReplacements(selectedClient.username) },
+                  { label: 'Услуги', icon: Briefcase, color: '#f59e0b', bg: '#fffbeb', action: () => navToServices(selectedClient.username) },
+                  { label: 'Транзакции', icon: ArrowLeftRight, color: '#059669', bg: '#ecfdf5', action: () => navToTransactions(selectedClient.username) },
+                ].map(({ label, icon: Icon, color, bg, action }) => (
+                  <button key={label} onClick={action} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.6rem 0.875rem', borderRadius: '10px',
+                    border: `1.5px solid ${color}22`, background: bg,
+                    color, fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer',
+                    transition: 'opacity 0.15s'
+                  }}>
+                    <Icon size={15} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={() => setShowDetailModal(false)} style={{ width: '100%', backgroundColor: '#f3f4f6', color: '#4b5563', padding: '0.7rem', borderRadius: '10px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>
               Закрыть
             </button>
           </div>
         </div>
       )}
 
-      {/* Password Modal */}
       {showPasswordModal && selectedClient && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '20px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
@@ -354,7 +429,7 @@ const Clients = () => {
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>
                   Новый пароль <span style={{ color: '#9ca3af', fontWeight: 400 }}>(минимум 8 символов)</span>
@@ -365,15 +440,12 @@ const Clients = () => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  minLength={8}
                 />
               </div>
               <div style={{ display: 'flex', gap: '1rem' }}>
-                <button type="button" onClick={() => setShowPasswordModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>
-                  Отмена
-                </button>
+                <button type="button" onClick={() => setShowPasswordModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Отмена</button>
                 <button type="submit" disabled={passwordLoading} style={{ flex: 1 }}>
-                  {passwordLoading ? 'Сохранение...' : 'Сохранить'}
+                  {passwordLoading ? 'Сохранение...' : 'Сменить'}
                 </button>
               </div>
             </form>
@@ -381,7 +453,6 @@ const Clients = () => {
         </div>
       )}
 
-      {/* Balance Modal */}
       {showBalanceModal && selectedClient && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '20px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
@@ -389,15 +460,14 @@ const Clients = () => {
               <div>
                 <h2 style={{ fontWeight: '700' }}>Изменить баланс</h2>
                 <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                  {selectedClient.username} — текущий: <strong>${selectedClient.balance.toFixed(2)}</strong>
+                  {selectedClient.username} · Текущий: <strong>${selectedClient.balance.toFixed(2)}</strong>
                 </p>
               </div>
               <button type="button" onClick={() => setShowBalanceModal(false)} style={{ padding: '0.5rem', backgroundColor: '#d1d5db', color: '#111827', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>
-
-            <form onSubmit={handleBalanceSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form onSubmit={handleBalanceSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>
                   Сумма (USD) <span style={{ color: '#9ca3af', fontWeight: 400 }}>— отрицательная для списания</span>
@@ -423,9 +493,7 @@ const Clients = () => {
                 />
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowBalanceModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>
-                  Отмена
-                </button>
+                <button type="button" onClick={() => setShowBalanceModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Отмена</button>
                 <button type="submit" disabled={balanceLoading} style={{ flex: 1 }}>
                   {balanceLoading ? 'Сохранение...' : 'Применить'}
                 </button>

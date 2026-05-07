@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 
-export function ConfirmDialog({ message, onConfirm, onCancel }) {
+export function ConfirmDialog({ title, message, confirmText, danger, onConfirm, onCancel }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
@@ -16,14 +16,19 @@ export function ConfirmDialog({ message, onConfirm, onCancel }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
             width: '44px', height: '44px', borderRadius: '12px',
-            backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: danger ? '#fef2f2' : '#f0fdf4',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0
           }}>
-            <AlertTriangle size={22} color="#ef4444" />
+            <AlertTriangle size={22} color={danger ? '#ef4444' : '#16a34a'} />
           </div>
           <div>
-            <p style={{ fontWeight: '700', fontSize: '1rem', color: '#111827', margin: 0 }}>Подтвердите действие</p>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>{message}</p>
+            <p style={{ fontWeight: '700', fontSize: '1rem', color: '#111827', margin: 0 }}>
+              {title || 'Подтвердите действие'}
+            </p>
+            {message && (
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>{message}</p>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
@@ -35,9 +40,14 @@ export function ConfirmDialog({ message, onConfirm, onCancel }) {
           </button>
           <button
             onClick={onConfirm}
-            style={{ padding: '0.65rem 1.5rem', backgroundColor: '#ef4444', color: 'white', borderRadius: '10px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}
+            style={{
+              padding: '0.65rem 1.5rem',
+              backgroundColor: danger ? '#ef4444' : '#16a34a',
+              color: 'white', borderRadius: '10px', border: 'none',
+              fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem'
+            }}
           >
-            Удалить
+            {confirmText || 'Подтвердить'}
           </button>
         </div>
       </div>
@@ -48,10 +58,13 @@ export function ConfirmDialog({ message, onConfirm, onCancel }) {
 export function useConfirm() {
   const [confirmState, setConfirmState] = useState(null)
 
-  const confirm = (message) => {
+  const confirm = (options) => {
+    const opts = typeof options === 'string'
+      ? { message: options }
+      : options
     return new Promise((resolve) => {
       setConfirmState({
-        message,
+        ...opts,
         onConfirm: () => { setConfirmState(null); resolve(true) },
         onCancel: () => { setConfirmState(null); resolve(false) }
       })
@@ -60,7 +73,10 @@ export function useConfirm() {
 
   const ConfirmNode = confirmState ? (
     <ConfirmDialog
+      title={confirmState.title}
       message={confirmState.message}
+      confirmText={confirmState.confirmText}
+      danger={confirmState.danger}
       onConfirm={confirmState.onConfirm}
       onCancel={confirmState.onCancel}
     />

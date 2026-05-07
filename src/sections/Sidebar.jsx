@@ -15,12 +15,19 @@ import {
   ChevronDown,
   MessageSquare,
   ClipboardList,
-  Activity
+  Activity,
+  List,
+  RefreshCw,
+  CreditCard,
+  Wallet,
+  ArrowLeftRight,
+  Settings
 } from 'lucide-react';
 
-const SidebarItem = ({ to, icon: Icon, label }) => (
+const SidebarItem = ({ to, icon: Icon, label, end }) => (
   <NavLink
     to={to}
+    end={end}
     style={({ isActive }) => ({
       display: 'flex',
       alignItems: 'center',
@@ -126,9 +133,10 @@ const SidebarGroupItem = ({ icon: Icon, label, children }) => {
   );
 };
 
-const SidebarSubItem = ({ to, icon: Icon, label }) => (
+const SidebarSubItem = ({ to, icon: Icon, label, end }) => (
   <NavLink
     to={to}
+    end={end}
     style={({ isActive }) => ({
       display: 'flex',
       alignItems: 'center',
@@ -154,6 +162,20 @@ const SidebarSubItem = ({ to, icon: Icon, label }) => (
   </NavLink>
 );
 
+const SectionLabel = ({ label }) => (
+  <div style={{
+    fontSize: '0.6rem',
+    color: '#4b5563',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    padding: '1rem 0.75rem 0.4rem',
+    userSelect: 'none'
+  }}>
+    {label}
+  </div>
+);
+
 const Sidebar = () => {
   return (
     <div className="sidebar-container" style={{
@@ -174,7 +196,7 @@ const Sidebar = () => {
         alignItems: 'center',
         gap: '0.75rem',
         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-        marginBottom: '1rem'
+        marginBottom: '0.5rem'
       }}>
         <div style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -186,33 +208,39 @@ const Sidebar = () => {
       </div>
 
       <nav style={{ padding: '0 1rem', flex: 1, overflowY: 'auto' }}>
-        <div style={{
-          fontSize: '0.65rem',
-          color: '#4b5563',
-          fontWeight: '700',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          padding: '0.5rem 0.75rem 1rem',
-        }}>
-          Основное меню
-        </div>
 
-        <SidebarItem to="/" icon={LayoutDashboard} label="Главная" />
-        <SidebarItem to="/users" icon={UsersIcon} label="Пользователи" />
+        <SidebarItem to="/" icon={LayoutDashboard} label="Главная" end />
+
+        <SectionLabel label="Пользователи" />
+        <SidebarItem to="/users" icon={UsersIcon} label="Сотрудники" />
         <SidebarItem to="/clients" icon={UserCheck} label="Клиенты" />
-        <SidebarItemDisabled icon={ShoppingCart} label="История покупок" />
-        <SidebarItem to="/products" icon={Package} label="Товары" />
+
+        <SectionLabel label="Продажи" />
+        <SidebarGroupItem icon={ShoppingCart} label="История покупок">
+          <SidebarSubItem to="/orders" icon={List} label="История заказов" end />
+          <SidebarSubItem to="/orders/replacements" icon={RefreshCw} label="История замен" />
+          <SidebarSubItem to="/orders/services" icon={Briefcase} label="История услуг" />
+        </SidebarGroupItem>
+        <SidebarItem to="/transactions" icon={ArrowLeftRight} label="Транзакции" />
+        <SidebarItem to="/balance-history" icon={Wallet} label="История баланса" />
         <SidebarItem to="/preorders" icon={ClipboardList} label="Предзаказы" />
+
+        <SectionLabel label="Каталог" />
+        <SidebarItem to="/products" icon={Package} label="Товары" />
         <SidebarItem to="/manuals" icon={BookOpen} label="Мануалы" />
         <SidebarItem to="/services" icon={Briefcase} label="Услуги" />
         <SidebarItemDisabled icon={Key} label="Продажа аккаунтов" />
         <SidebarItem to="/reviews" icon={Star} label="Отзывы" />
 
+        <SectionLabel label="Поддержка" />
         <SidebarGroupItem icon={LifeBuoy} label="Поддержка">
-          <SidebarSubItem to="/support" icon={LifeBuoy} label="Поддержка" />
+          <SidebarSubItem to="/support" icon={LifeBuoy} label="Тикеты" />
           <SidebarSubItem to="/contact-forms" icon={MessageSquare} label="Формы связи" />
         </SidebarGroupItem>
+
+        <SectionLabel label="Система" />
         <SidebarItem to="/health" icon={Activity} label="Health Server" />
+        <SidebarItem to="/notif-settings" icon={Settings} label="Настройки уведомлений" />
       </nav>
 
       <div style={{

@@ -646,7 +646,7 @@ const Products = () => {
                 </ClickableCell>
                 <td style={{ padding: '1rem 1.5rem' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#f3f4f6', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb' }}>
-                    {p.path_image ? <img src={`${import.meta.env.VITE_API_URL}${p.path_image}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={18} color="#9ca3af" />}
+                    {p.path_image ? <img src={`${(import.meta.env.VITE_API_URL || '').replace(/\/api\/v3$/, '')}${p.path_image}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={18} color="#9ca3af" />}
                   </div>
                 </td>
                 <ClickableCell text={p.title?.ru || p.title?.en || ''} style={{ fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-main)' }}>{p.title?.ru || p.title?.en || ''}</ClickableCell>

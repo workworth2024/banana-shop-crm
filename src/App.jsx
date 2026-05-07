@@ -17,6 +17,9 @@ import Reviews from './pages/Reviews';
 import ContactForms from './pages/ContactForms';
 import Preorders from './pages/Preorders';
 import HealthServer from './pages/HealthServer';
+import Orders from './pages/Orders';
+import Transactions from './pages/Transactions';
+import NotifSettings from './pages/NotifSettings';
 
 function App() {
   return (
@@ -39,6 +42,11 @@ function App() {
           <Route path="users" element={<Users />} />
           <Route path="clients" element={<Clients />} />
           <Route path="purchases" element={<Purchases />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="orders/replacements" element={<Orders />} />
+          <Route path="orders/services" element={<Orders />} />
+          <Route path="transactions" element={<Transactions />} />
+          <Route path="balance-history" element={<Transactions />} />
           <Route path="products" element={<Products />} />
           <Route path="manuals" element={<Manuals />} />
           <Route path="services" element={<Services />} />
@@ -48,6 +56,7 @@ function App() {
           <Route path="contact-forms" element={<ContactForms />} />
           <Route path="preorders" element={<Preorders />} />
           <Route path="health" element={<HealthServer />} />
+          <Route path="notif-settings" element={<NotifSettings />} />
         </Route>
       </Routes>
     </Router>
