@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Youtube, Globe, Filter as FilterIcon, 
-  ChevronLeft, ChevronRight, Package, Image as ImageIcon, X, Check,
+  ChevronLeft, ChevronRight, Package, Image as ImageIcon, X, Check, Copy,
   Settings2, Calendar, MapPin
 } from 'lucide-react';
 import { getFilters, createFilter, updateFilter, deleteFilter, getYoutubeProducts, getGoogleAdsProducts, saveProduct, deleteProduct } from '../api/products';
@@ -61,9 +61,12 @@ const Products = () => {
     countWholesale: 120
   });
 
-  const copyToClipboard = (text) => {
+  const [copiedId, setCopiedId] = useState(null);
+
+  const copyToClipboard = (text, id) => {
     navigator.clipboard.writeText(text);
-    // Simple notification could be added here, but user just asked for the feature
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
   };
 
   const handleResize = (column, newWidth) => {
@@ -111,9 +114,9 @@ const Products = () => {
     );
   };
 
-  const ClickableCell = ({ children, text, style = {} }) => (
+  const ClickableCell = ({ children, text, style = {}, cellId }) => (
     <td 
-      onClick={() => copyToClipboard(text || children?.toString() || '')}
+      onClick={() => copyToClipboard(text || children?.toString() || '', cellId)}
       style={{ 
         padding: '1rem 1.5rem', 
         cursor: 'pointer',
@@ -625,7 +628,15 @@ const Products = () => {
               const country = countries.find(c => c.code === p.geo);
               return (
               <tr key={p._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <ClickableCell text={p._id} style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>{p._id.slice(-6)}</ClickableCell>
+                <ClickableCell text={p.uid || String(p._id)} cellId={p._id} style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <span>{p.uid || p._id.slice(-6)}</span>
+                    {copiedId === p._id
+                      ? <Check size={12} style={{ color: '#059669', flexShrink: 0 }} />
+                      : <Copy size={12} style={{ color: '#d1d5db', flexShrink: 0 }} />
+                    }
+                  </div>
+                </ClickableCell>
                 <ClickableCell text={p.type}>
                   <span style={{ 
                     padding: '0.25rem 0.6rem', 

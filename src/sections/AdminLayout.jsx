@@ -181,7 +181,7 @@ const AdminLayout = () => {
     fetchCount();
     const socket = socketIO(`${SOCKET_URL}/admin`, {
       withCredentials: true,
-      transports: ['websocket', 'polling']
+      transports: ['polling']
     });
     socket.on('admin_notification', (data) => {
       if (data.unreadCount !== undefined) setUnreadCount(data.unreadCount);

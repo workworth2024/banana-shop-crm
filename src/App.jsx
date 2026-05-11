@@ -20,6 +20,8 @@ import HealthServer from './pages/HealthServer';
 import Orders from './pages/Orders';
 import Transactions from './pages/Transactions';
 import NotifSettings from './pages/NotifSettings';
+import Scenarios from './pages/Scenarios';
+import ServiceOrders from './pages/ServiceOrders';
 
 function App() {
   return (
@@ -55,6 +57,8 @@ function App() {
           <Route path="support" element={<Support />} />
           <Route path="contact-forms" element={<ContactForms />} />
           <Route path="preorders" element={<Preorders />} />
+          <Route path="service-orders" element={<ServiceOrders />} />
+          <Route path="scenarios" element={<Scenarios />} />
           <Route path="health" element={<HealthServer />} />
           <Route path="notif-settings" element={<NotifSettings />} />
         </Route>

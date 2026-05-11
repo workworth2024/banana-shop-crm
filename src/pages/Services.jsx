@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { getServices, saveService, deleteService } from '../api/services';
 import { getFilters } from '../api/products';
+import { getScenarios } from '../api/scenarios';
 import { useAuthStore } from '../stores/authStore';
 import { useConfirm } from '../components/ConfirmDialog';
 import { ImageUploadInput } from '../components/FileUploadInput';
@@ -14,6 +15,7 @@ import toast from 'react-hot-toast';
 const Services = () => {
   const [services, setServices] = useState([]);
   const [filters, setFilters] = useState([]);
+  const [scenarios, setScenarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
@@ -106,6 +108,13 @@ const Services = () => {
     }
   }, []);
 
+  const fetchScenariosList = useCallback(async () => {
+    try {
+      const data = await getScenarios(new URLSearchParams({ page: 1, limit: 200 }));
+      setScenarios(data.scenarios || []);
+    } catch {}
+  }, []);
+
   const fetchServices = useCallback(async () => {
     setLoading(true);
     try {
@@ -130,7 +139,8 @@ const Services = () => {
 
   useEffect(() => {
     fetchFilters();
-  }, [fetchFilters]);
+    fetchScenariosList();
+  }, [fetchFilters, fetchScenariosList]);
 
   useEffect(() => {
     fetchServices();
@@ -155,11 +165,12 @@ const Services = () => {
         'necessary_data.ru': service.necessary_data?.ru || '',
         'necessary_data.en': service.necessary_data?.en || '',
         'implementation_period.ru': service.implementation_period?.ru || '',
-        'implementation_period.en': service.implementation_period?.en || ''
+        'implementation_period.en': service.implementation_period?.en || '',
+        scenarioId: service.scenarioId?._id || service.scenarioId || ''
       });
     } else {
       setEditingService(null);
-      setServiceForm({ 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'sub_desc.ru': '', 'sub_desc.en': '', price: 0, filter_id: '', link: '', 'necessary_data.ru': '', 'necessary_data.en': '', 'implementation_period.ru': '', 'implementation_period.en': '' });
+      setServiceForm({ 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'sub_desc.ru': '', 'sub_desc.en': '', price: 0, filter_id: '', link: '', 'necessary_data.ru': '', 'necessary_data.en': '', 'implementation_period.ru': '', 'implementation_period.en': '', scenarioId: '' });
     }
     setImageFile(null);
     setShowServiceModal(true);
@@ -194,6 +205,7 @@ const Services = () => {
     
     const filterId = serviceForm.filter_id?._id || serviceForm.filter_id || '';
     formData.append('filter_id', filterId);
+    formData.append('scenarioId', serviceForm.scenarioId || '');
 
     if (imageFile) {
       formData.append('image', imageFile);
@@ -418,6 +430,13 @@ const Services = () => {
                     {filters.map(f => <option key={f._id} value={f._id}>{f.name.ru || f.name.en}</option>)}
                   </select>
                 </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Сценарий заказа</label>
+                <select value={serviceForm.scenarioId || ''} onChange={(e) => setServiceForm({...serviceForm, scenarioId: e.target.value})}>
+                  <option value="">Без сценария (через Telegram)</option>
+                  {scenarios.map(sc => <option key={sc._id} value={sc._id}>{sc.title?.ru || sc.title?.en}</option>)}
+                </select>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Ссылка</label>

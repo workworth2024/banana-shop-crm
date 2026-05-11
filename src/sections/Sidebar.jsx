@@ -21,7 +21,9 @@ import {
   CreditCard,
   Wallet,
   ArrowLeftRight,
-  Settings
+  Settings,
+  Layers,
+  FileText
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, label, end }) => (
@@ -219,16 +221,19 @@ const Sidebar = () => {
         <SidebarGroupItem icon={ShoppingCart} label="История покупок">
           <SidebarSubItem to="/orders" icon={List} label="История заказов" end />
           <SidebarSubItem to="/orders/replacements" icon={RefreshCw} label="История замен" />
-          <SidebarSubItem to="/orders/services" icon={Briefcase} label="История услуг" />
+          <SidebarSubItem to="/preorders" icon={ClipboardList} label="Предзаказы" />
+          <SidebarSubItem to="/service-orders" icon={FileText} label="История услуг" />
         </SidebarGroupItem>
+
+        <SectionLabel label="Платежи" />
         <SidebarItem to="/transactions" icon={ArrowLeftRight} label="Транзакции" />
         <SidebarItem to="/balance-history" icon={Wallet} label="История баланса" />
-        <SidebarItem to="/preorders" icon={ClipboardList} label="Предзаказы" />
 
         <SectionLabel label="Каталог" />
         <SidebarItem to="/products" icon={Package} label="Товары" />
         <SidebarItem to="/manuals" icon={BookOpen} label="Мануалы" />
         <SidebarItem to="/services" icon={Briefcase} label="Услуги" />
+        <SidebarItem to="/scenarios" icon={Layers} label="Сценарии" />
         <SidebarItemDisabled icon={Key} label="Продажа аккаунтов" />
         <SidebarItem to="/reviews" icon={Star} label="Отзывы" />
 

@@ -209,7 +209,7 @@ const Manuals = () => {
     }
 
     const isEdit = !!editingManual;
-    const url = `${import.meta.env.VITE_API_URL}/api/v3/${isEdit ? `manuals/${editingManual._id}` : 'manuals'}`;
+    const url = `${import.meta.env.VITE_API_URL}/${isEdit ? `manuals/${editingManual._id}` : 'manuals'}`;
 
     try {
       setUploadProgress(manualFile ? 0 : null);

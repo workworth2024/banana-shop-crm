@@ -400,9 +400,9 @@ function OrdersTab({ onEdit }) {
                 <td style={{ ...tdStyle, maxWidth: '90px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
                     <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#6b7280' }}>
-                      {order.productId ? String(order.productId).slice(-8) : '—'}
+                      {order.productId?.uid || (order.productId ? String(order.productId._id || order.productId).slice(-8) : '—')}
                     </span>
-                    {order.productId && <CopyBtn value={String(order.productId)} />}
+                    {order.productId && <CopyBtn value={order.productId?.uid || String(order.productId._id || order.productId)} />}
                   </div>
                 </td>
                 <td style={{ ...tdStyle, maxWidth: '180px' }}>
@@ -473,33 +473,38 @@ function ReplacementsTab() {
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState(initSearch);
   const [search, setSearch] = useState(initSearch);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const fetchData = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       const params = { page, limit: 20 };
       if (search) params.search = search;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
       const data = await getReplacementsHistory(params);
       setOrders(data.orders || []);
       setTotal(data.total || 0);
       setPages(data.pages || 1);
     } catch { toast.error('Ошибка загрузки'); }
     finally { setLoading(false); }
-  }, [search]);
+  }, [search, startDate, endDate]);
 
   useEffect(() => { fetchData(currentPage); }, [fetchData, currentPage]);
 
   return (
     <>
-      <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: '0.5rem' }}>
+      <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <form onSubmit={e => { e.preventDefault(); setCurrentPage(1); setSearch(searchInput); }} style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={14} style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
             <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="Поиск по ID заказа, покупателю..." style={{ width: '100%', padding: '0.55rem 0.75rem 0.55rem 2.1rem', borderRadius: '8px', border: '1.5px solid #e5e7eb', fontSize: '0.85rem', background: 'white', color: 'var(--text-main)', outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <button type="submit" style={{ padding: '0.55rem 1rem', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}>Поиск</button>
-          <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setCurrentPage(1); }} style={{ padding: '0.55rem 0.875rem', borderRadius: '8px', border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}>Сброс</button>
+          <button type="button" onClick={() => { setSearchInput(''); setSearch(''); setStartDate(''); setEndDate(''); setCurrentPage(1); }} style={{ padding: '0.55rem 0.875rem', borderRadius: '8px', border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}>Сброс</button>
         </form>
+        <DateQuickFilters startDate={startDate} endDate={endDate} onSet={(s, e) => { setStartDate(s); setEndDate(e); setCurrentPage(1); }} />
       </div>
 
       <div style={{ overflowX: 'auto' }}>
@@ -580,8 +585,7 @@ const Orders = () => {
 
   const tabs = [
     { key: 'orders', label: 'История заказов', path: '/orders' },
-    { key: 'replacements', label: 'История замен', path: '/orders/replacements' },
-    { key: 'services', label: 'История услуг', path: '/orders/services' }
+    { key: 'replacements', label: 'История замен', path: '/orders/replacements' }
   ];
 
   const handleRefresh = () => setRefreshKey(k => k + 1);
@@ -624,13 +628,6 @@ const Orders = () => {
 
         {activeTab === 'orders' && <OrdersTab key={refreshKey} onEdit={setEditingOrder} />}
         {activeTab === 'replacements' && <ReplacementsTab key={`r-${refreshKey}`} />}
-        {activeTab === 'services' && (
-          <div style={{ padding: '4rem', textAlign: 'center', color: '#6b7280' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🚧</div>
-            <div style={{ fontWeight: '600' }}>Скоро</div>
-            <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Раздел в разработке</div>
-          </div>
-        )}
       </div>
     </div>
   );
