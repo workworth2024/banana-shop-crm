@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuthStore } from '../stores/authStore';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -55,6 +56,42 @@ const SidebarItem = ({ to, icon: Icon, label, end }) => (
       </>
     )}
   </NavLink>
+);
+
+const SidebarItemAdminOnly = ({ icon: Icon, label }) => (
+  <div
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.875rem',
+      padding: '0.875rem 1.125rem',
+      borderRadius: '10px',
+      color: 'var(--sidebar-text)',
+      marginBottom: '0.25rem',
+      fontSize: '0.9375rem',
+      fontWeight: '400',
+      opacity: 0.35,
+      cursor: 'not-allowed',
+      border: '1px solid transparent',
+      userSelect: 'none'
+    }}
+  >
+    <Icon size={20} style={{ color: 'var(--sidebar-text)' }} />
+    <span style={{ flex: 1 }}>{label}</span>
+    <span style={{
+      fontSize: '0.6rem',
+      fontWeight: '700',
+      letterSpacing: '0.05em',
+      textTransform: 'uppercase',
+      padding: '0.15rem 0.4rem',
+      borderRadius: '4px',
+      backgroundColor: 'rgba(255,255,255,0.08)',
+      color: '#9ca3af',
+      whiteSpace: 'nowrap'
+    }}>
+      Admin
+    </span>
+  </div>
 );
 
 const SidebarItemDisabled = ({ icon: Icon, label }) => (
@@ -179,6 +216,9 @@ const SectionLabel = ({ label }) => (
 );
 
 const Sidebar = () => {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
+
   return (
     <div className="sidebar-container" style={{
       width: '280px',
@@ -244,7 +284,10 @@ const Sidebar = () => {
         </SidebarGroupItem>
 
         <SectionLabel label="Система" />
-        <SidebarItem to="/health" icon={Activity} label="Health Server" />
+        {isAdmin
+          ? <SidebarItem to="/health" icon={Activity} label="Health Server" />
+          : <SidebarItemAdminOnly icon={Activity} label="Health Server" />
+        }
         <SidebarItem to="/notif-settings" icon={Settings} label="Настройки уведомлений" />
       </nav>
 

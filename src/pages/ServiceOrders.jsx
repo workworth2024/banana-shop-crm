@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, ChevronLeft, ChevronRight, Upload, X, ChevronDown, ChevronUp, Copy, Download } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
+import { Search, ChevronLeft, ChevronRight, Upload, X, ChevronDown, ChevronUp, Copy, Download, Receipt } from 'lucide-react';
 import { getServiceOrders, updateServiceOrderStatus, uploadResultFiles, deleteResultFile, downloadCustomerFile } from '../api/serviceOrders';
 import { useAuthStore } from '../stores/authStore';
 import toast from 'react-hot-toast';
+import TransferProgressOverlay from '../components/TransferProgressOverlay';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const STATUS_CFG = {
   pending:     { bg: '#fef3c7', color: '#92400e', label: 'В обработке' },
@@ -10,6 +12,20 @@ const STATUS_CFG = {
   completed:   { bg: '#d1fae5', color: '#065f46', label: 'Выполнен' },
   cancelled:   { bg: '#fee2e2', color: '#991b1b', label: 'Отменён' },
 };
+
+const PAYMENT_CFG = { unpaid: { color: '#9ca3af', label: 'Не оплачен' }, paid: { color: '#3b82f6', label: 'Оплачен' } };
+
+function isServiceOrderPaid(o) {
+  if (o.paymentStatus === 'paid') return true;
+  if (o.paymentStatus === 'unpaid') return false;
+  return Number(o.amountPaid) > 0;
+}
+
+function serviceOrderTransactionSearchQuery(o) {
+  if (o.paymentTransactionUid) return o.paymentTransactionUid;
+  if (isServiceOrderPaid(o) && o.uid) return `Service ${o.uid}`;
+  return '';
+}
 
 const thStyle = {
   padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: '700',
@@ -62,6 +78,8 @@ function DateQuickFilters({ startDate, endDate, onSet }) {
 function FilesRow({ order, onRefresh }) {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [transferPct, setTransferPct] = useState(null);
+  const [transferTitle, setTransferTitle] = useState('');
   const fileRef = useRef();
 
   const handleUpload = async (e) => {
@@ -70,15 +88,43 @@ function FilesRow({ order, onRefresh }) {
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
     setUploading(true);
+    setTransferTitle('Загрузка результата');
+    setTransferPct(0);
     try {
-      await uploadResultFiles(order._id, fd);
+      await uploadResultFiles(order._id, fd, {
+        onUploadProgress: (p) => setTransferPct(p),
+      });
       toast.success(`${files.length} файл(ов) загружено`);
       onRefresh();
     } catch (err) {
       toast.error(err.message || 'Ошибка загрузки');
     } finally {
       setUploading(false);
+      setTransferPct(null);
+      setTransferTitle('');
       e.target.value = '';
+    }
+  };
+
+  const handleDownloadCustomer = async (fileId, originalName) => {
+    setTransferTitle('Скачивание файла клиента');
+    setTransferPct(0);
+    try {
+      const blob = await downloadCustomerFile(order._id, fileId, {
+        onDownloadProgress: (p) => setTransferPct(p),
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = originalName || 'file';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Файл сохранён');
+    } catch (err) {
+      toast.error(err.message || 'Ошибка скачивания');
+    } finally {
+      setTransferPct(null);
+      setTransferTitle('');
     }
   };
 
@@ -97,7 +143,8 @@ function FilesRow({ order, onRefresh }) {
 
   return (
     <tr>
-      <td colSpan={10} style={{ padding: '0.75rem 1.5rem', background: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
+      <td colSpan={7} style={{ padding: '0.75rem 1.5rem', background: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
+        <TransferProgressOverlay title={transferTitle} percent={transferPct} subtitle={order.uid} />
         <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', fontWeight: '700', color: '#374151' }}>Ответы клиента:</div>
         {(order.responses || []).length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.75rem' }}>
@@ -113,7 +160,7 @@ function FilesRow({ order, onRefresh }) {
             <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#374151', marginBottom: '0.3rem' }}>Файлы клиента:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
               {order.customerFiles.map(f => (
-                <button key={f._id} onClick={() => downloadCustomerFile(order._id, f._id)}
+                <button key={f._id} type="button" onClick={() => handleDownloadCustomer(f._id, f.originalName)}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: '8px', padding: '0.3rem 0.6rem', fontSize: '0.78rem', color: '#0369a1', cursor: 'pointer' }}>
                   <Download size={11} />
                   {f.originalName}
@@ -151,13 +198,16 @@ function FilesRow({ order, onRefresh }) {
 }
 
 const ServiceOrders = () => {
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') || '';
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const [search, setSearch] = useState(urlSearch);
   const [statusFilter, setStatusFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -166,6 +216,14 @@ const ServiceOrders = () => {
 
   const { user } = useAuthStore();
   const canManage = user?.role === 'admin' || user?.role === 'manager';
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const s = searchParams.get('search') || '';
+    setSearchInput(s);
+    setSearch(s);
+    setCurrentPage(1);
+  }, [searchParams]);
 
   const fetchOrders = useCallback(async (page = 1) => {
     setLoading(true);
@@ -250,21 +308,25 @@ const ServiceOrders = () => {
                 <th style={thStyle}>Клиент</th>
                 <th style={thStyle}>Услуга</th>
                 <th style={thStyle}>Статус</th>
+                <th style={thStyle}>Оплата</th>
                 <th style={thStyle}>Дата</th>
                 <th style={{ ...thStyle, borderRight: 'none' }}>Действия</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>Загрузка...</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>Загрузка...</td></tr>
               ) : orders.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>Нет заявок</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>Нет заявок</td></tr>
               ) : orders.map(order => {
                 const cfg = STATUS_CFG[order.status] || STATUS_CFG.pending;
+                const paid = isServiceOrderPaid(order);
+                const payCfg = PAYMENT_CFG[paid ? 'paid' : 'unpaid'];
+                const txSearch = serviceOrderTransactionSearchQuery(order);
                 const isExp = expandedId === order._id;
                 return (
-                  <>
-                    <tr key={order._id} style={{ cursor: 'pointer' }} onClick={() => toggleExpand(order._id)}>
+                  <Fragment key={order._id}>
+                    <tr style={{ cursor: 'pointer' }} onClick={() => toggleExpand(order._id)}>
                       <td style={tdStyle}>
                         <span style={{ fontWeight: '600', fontSize: '0.8rem', color: '#374151', fontFamily: 'monospace' }}>{order.uid}</span>
                         <CopyBtn value={order.uid} />
@@ -281,6 +343,28 @@ const ServiceOrders = () => {
                         <span style={{ display: 'inline-block', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', background: cfg.bg, color: cfg.color }}>
                           {cfg.label}
                         </span>
+                      </td>
+                      <td style={tdStyle} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                          <span style={{
+                            display: 'inline-block', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700',
+                            background: payCfg.color + '22', color: payCfg.color
+                          }}>{payCfg.label}</span>
+                          {txSearch ? (
+                            <button
+                              type="button"
+                              title="Журнал транзакций (поиск по UID)"
+                              onClick={() => navigate(`/transactions?search=${encodeURIComponent(txSearch)}`)}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                padding: '0.25rem', borderRadius: '6px', border: '1.5px solid #e5e7eb', background: '#fff',
+                                color: '#6b7280', cursor: 'pointer'
+                              }}
+                            >
+                              <Receipt size={14} />
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                       <td style={tdStyle}>
                         <span style={{ fontSize: '0.8rem', color: '#374151' }}>
@@ -303,8 +387,8 @@ const ServiceOrders = () => {
                         </div>
                       </td>
                     </tr>
-                    {isExp && <FilesRow key={`exp-${order._id}`} order={order} onRefresh={() => fetchOrders(currentPage)} />}
-                  </>
+                    {isExp && <FilesRow order={order} onRefresh={() => fetchOrders(currentPage)} />}
+                  </Fragment>
                 );
               })}
             </tbody>

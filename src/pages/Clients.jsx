@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Check, X, ChevronLeft, ChevronRight, DollarSign, Eye, RefreshCw, KeyRound, ShoppingCart, ArrowLeftRight, Repeat2, Briefcase } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getClients, toggleClientStatus, adjustClientBalance, resetClientPassword } from '../api/clients';
@@ -51,13 +51,15 @@ const Clients = () => {
   const { user: currentUser } = useAuthStore();
   const isAdmin = currentUser?.role === 'admin';
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const clientsUrlSearch = searchParams.get('search') || '';
 
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(clientsUrlSearch);
   const [filterStatus, setFilterStatus] = useState('');
 
   const [selectedClient, setSelectedClient] = useState(null);
@@ -90,6 +92,12 @@ const Clients = () => {
       setLoading(false);
     }
   }, [currentPage, search, filterStatus]);
+
+  useEffect(() => {
+    const s = searchParams.get('search') || '';
+    setSearch(s);
+    setCurrentPage(1);
+  }, [searchParams]);
 
   useEffect(() => {
     fetchClients();

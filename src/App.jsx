@@ -22,6 +22,7 @@ import Transactions from './pages/Transactions';
 import NotifSettings from './pages/NotifSettings';
 import Scenarios from './pages/Scenarios';
 import ServiceOrders from './pages/ServiceOrders';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -61,6 +62,7 @@ function App() {
           <Route path="scenarios" element={<Scenarios />} />
           <Route path="health" element={<HealthServer />} />
           <Route path="notif-settings" element={<NotifSettings />} />
+          <Route path="profile" element={<Profile />} />
         </Route>
       </Routes>
     </Router>

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Upload, Download, Trash2, RefreshCw, Copy, Check, Search } from 'lucide-react';
+import { X, Upload, Download, Trash2, RefreshCw, Copy, Check, Search, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
+import TransferProgressOverlay from './TransferProgressOverlay';
+import { xhrPostFormData, xhrDownloadBlob } from '../utils/fileTransfer';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v3';
 
@@ -56,6 +58,8 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -63,6 +67,9 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
   const [downloadingUid, setDownloadingUid] = useState(null);
   const [ramLow, setRamLow] = useState(false);
   const fileInputRef = useRef(null);
+  const [transferProgress, setTransferProgress] = useState(null);
+  const [transferTitle, setTransferTitle] = useState('');
+  const [transferSubtitle, setTransferSubtitle] = useState('');
 
   useEffect(() => {
     apiFetch('/health/stats').then(async (r) => {
@@ -77,6 +84,8 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
       const params = new URLSearchParams({ page: p, limit: 20 });
       if (statusFilter) params.set('status', statusFilter);
       if (search) params.set('search', search);
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
       const res = await apiFetch(
         `/digital-items/admin/${productType}/${product._id}?${params}`
       );
@@ -90,9 +99,9 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, search, product._id, productType]);
+  }, [page, statusFilter, search, startDate, endDate, product._id, productType]);
 
-  useEffect(() => { fetchItems(page); }, [page, statusFilter, search]);
+  useEffect(() => { fetchItems(page); }, [page, statusFilter, search, startDate, endDate]);
 
   const handleFiles = async (files) => {
     if (!files || files.length === 0) return;
@@ -100,20 +109,25 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
     const fd = new FormData();
     for (const f of files) fd.append('files', f);
     setUploading(true);
+    setTransferTitle('Загрузка файлов');
+    setTransferSubtitle(`${files.length} шт.`);
+    setTransferProgress(0);
     try {
-      const res = await apiFetch(
-        `/digital-items/admin/${productType}/${product._id}`,
-        { method: 'POST', body: fd }
+      const data = await xhrPostFormData(
+        `${BASE_URL}/digital-items/admin/${productType}/${product._id}`,
+        fd,
+        { onUploadProgress: (p) => setTransferProgress(p) }
       );
-      const data = await res.json();
       toast.success(`Загружено ${data.uploaded} файл(ов). Остаток: ${data.newCount}`);
       fetchItems(1);
       setPage(1);
       if (onCountsChanged) onCountsChanged(data.newCount);
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Ошибка');
     } finally {
       setUploading(false);
+      setTransferProgress(null);
+      setTransferSubtitle('');
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -146,10 +160,13 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
 
   const handleDownload = async (uid, originalName) => {
     setDownloadingUid(uid);
+    setTransferTitle('Скачивание файла');
+    setTransferSubtitle(originalName || uid);
+    setTransferProgress(0);
     try {
-      const res = await fetch(`${BASE_URL}/digital-items/admin/download/${uid}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Ошибка скачивания');
-      const blob = await res.blob();
+      const blob = await xhrDownloadBlob(`${BASE_URL}/digital-items/admin/download/${uid}`, {
+        onDownloadProgress: (p) => setTransferProgress(p),
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -157,9 +174,11 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Ошибка скачивания');
     } finally {
       setDownloadingUid(null);
+      setTransferProgress(null);
+      setTransferSubtitle('');
     }
   };
 
@@ -169,10 +188,31 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
     setPage(1);
   };
 
+  const localYMD = (d) => {
+    const z = new Date(d);
+    return `${z.getFullYear()}-${String(z.getMonth() + 1).padStart(2, '0')}-${String(z.getDate()).padStart(2, '0')}`;
+  };
+
+  const applyDatePreset = (preset) => {
+    const today = new Date();
+    if (preset === 'today') {
+      const d = localYMD(today);
+      setStartDate(d); setEndDate(d);
+    } else if (preset === '7d') {
+      const s = new Date(today); s.setDate(s.getDate() - 6);
+      setStartDate(localYMD(s)); setEndDate(localYMD(today));
+    } else if (preset === '30d') {
+      const s = new Date(today); s.setDate(s.getDate() - 29);
+      setStartDate(localYMD(s)); setEndDate(localYMD(today));
+    }
+    setPage(1);
+  };
+
   const titleStr = product.title?.ru || product.title?.en || product.name || product._id;
 
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+      <TransferProgressOverlay title={transferTitle} percent={transferProgress} subtitle={transferSubtitle} />
       <div style={{ backgroundColor: '#fff', borderRadius: '20px', width: '100%', maxWidth: '820px', maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
 
         {/* Header */}
@@ -266,6 +306,28 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
           </button>
         </div>
 
+        {/* Date filters row */}
+        <div style={{ padding: '0.6rem 2rem', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
+          <Calendar size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
+          <button type="button" onClick={() => applyDatePreset('today')} style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', fontWeight: '600', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', borderRadius: '7px', cursor: 'pointer' }}>
+            Сегодня
+          </button>
+          <button type="button" onClick={() => applyDatePreset('7d')} style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', fontWeight: '600', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', borderRadius: '7px', cursor: 'pointer' }}>
+            7 дней
+          </button>
+          <button type="button" onClick={() => applyDatePreset('30d')} style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', fontWeight: '600', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', borderRadius: '7px', cursor: 'pointer' }}>
+            30 дней
+          </button>
+          <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1); }} style={{ padding: '0.3rem 0.5rem', borderRadius: '7px', border: '1px solid #e5e7eb', fontSize: '0.8rem', color: '#374151' }} />
+          <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>—</span>
+          <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} style={{ padding: '0.3rem 0.5rem', borderRadius: '7px', border: '1px solid #e5e7eb', fontSize: '0.8rem', color: '#374151' }} />
+          {(startDate || endDate) && (
+            <button type="button" onClick={() => { setStartDate(''); setEndDate(''); setPage(1); }} style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem', background: '#f3f4f6', color: '#6b7280', border: 'none', borderRadius: '7px', cursor: 'pointer' }}>
+              ✕
+            </button>
+          )}
+        </div>
+
         {/* Items list */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 2rem' }}>
           {loading ? (
@@ -333,13 +395,14 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
         </div>
 
         {/* Pagination */}
-        {pages > 1 && (
-          <div style={{ padding: '0.75rem 2rem', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
-            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '0.4rem 0.75rem', background: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: page === 1 ? 0.5 : 1 }}>‹</button>
-            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{page} / {pages}</span>
-            <button disabled={page >= pages} onClick={() => setPage(p => p + 1)} style={{ padding: '0.4rem 0.75rem', background: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: page >= pages ? 0.5 : 1 }}>›</button>
+        <div style={{ padding: '0.75rem 2rem', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Всего: <b style={{ color: '#374151' }}>{total}</b></span>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '0.4rem 0.75rem', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1, fontSize: '1rem', lineHeight: 1 }}>‹</button>
+            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151' }}>{page} / {pages}</span>
+            <button disabled={page >= pages} onClick={() => setPage(p => p + 1)} style={{ padding: '0.4rem 0.75rem', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', cursor: page >= pages ? 'not-allowed' : 'pointer', opacity: page >= pages ? 0.5 : 1, fontSize: '1rem', lineHeight: 1 }}>›</button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

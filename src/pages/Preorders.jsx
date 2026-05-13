@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Trash2, ChevronLeft, ChevronRight, CheckCircle, XCircle, Clock, Search, Copy, Upload, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
+import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Clock, Search, Copy, Upload, ChevronDown, ChevronUp, X, Receipt } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getPreorders, updatePreorderStatus, deletePreorder, uploadPreorderFiles, deletePreorderFile } from '../api/preorders';
+import { getPreorders, updatePreorderStatus, uploadPreorderFiles, deletePreorderFile } from '../api/preorders';
 import { useAuthStore } from '../stores/authStore';
+import TransferProgressOverlay from '../components/TransferProgressOverlay';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const STATUS_CFG = {
   pending:     { bg: '#fef3c7', color: '#92400e', label: 'В обработке' },
@@ -10,6 +12,20 @@ const STATUS_CFG = {
   completed:   { bg: '#d1fae5', color: '#065f46', label: 'Выполнен' },
   cancelled:   { bg: '#fee2e2', color: '#991b1b', label: 'Отменён' },
 };
+
+const PAYMENT_CFG = { unpaid: { color: '#9ca3af', label: 'Не оплачен' }, paid: { color: '#3b82f6', label: 'Оплачен' } };
+
+function isPreorderPaid(p) {
+  if (p.paymentStatus === 'paid') return true;
+  if (p.paymentStatus === 'unpaid') return false;
+  return Number(p.amountPaid) > 0;
+}
+
+function preorderTransactionSearchQuery(p) {
+  if (p.paymentTransactionUid) return p.paymentTransactionUid;
+  if (isPreorderPaid(p) && p.uid) return `Preorder ${p.uid}`;
+  return '';
+}
 
 const thStyle = {
   padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: '700',
@@ -67,6 +83,7 @@ function DateQuickFilters({ startDate, endDate, onSet }) {
 function FilesRow({ preorder, onRefresh }) {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [transferPct, setTransferPct] = useState(null);
   const fileRef = useRef();
 
   const handleUpload = async (e) => {
@@ -75,14 +92,18 @@ function FilesRow({ preorder, onRefresh }) {
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
     setUploading(true);
+    setTransferPct(0);
     try {
-      await uploadPreorderFiles(preorder._id, fd);
+      await uploadPreorderFiles(preorder._id, fd, {
+        onUploadProgress: (p) => setTransferPct(p),
+      });
       toast.success(`${files.length} файл(ов) загружено`);
       onRefresh();
     } catch (err) {
       toast.error(err.message || 'Ошибка загрузки');
     } finally {
       setUploading(false);
+      setTransferPct(null);
       e.target.value = '';
     }
   };
@@ -102,7 +123,8 @@ function FilesRow({ preorder, onRefresh }) {
 
   return (
     <tr>
-      <td colSpan={10} style={{ padding: '0.75rem 1.5rem', background: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
+      <td colSpan={11} style={{ padding: '0.75rem 1.5rem', background: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
+        <TransferProgressOverlay title="Загрузка файлов предзаказа" percent={transferPct} subtitle={preorder.uid} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#374151' }}>
             Файлы ({preorder.files?.length || 0}):
@@ -130,13 +152,16 @@ function FilesRow({ preorder, onRefresh }) {
 }
 
 const Preorders = () => {
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') || '';
+
   const [preorders, setPreorders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const [search, setSearch] = useState(urlSearch);
   const [statusFilter, setStatusFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -144,6 +169,14 @@ const Preorders = () => {
 
   const { user } = useAuthStore();
   const canManage = user?.role === 'admin' || user?.role === 'manager';
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const s = searchParams.get('search') || '';
+    setSearchInput(s);
+    setSearch(s);
+    setCurrentPage(1);
+  }, [searchParams]);
 
   const fetchPreorders = useCallback(async (page = 1) => {
     setLoading(true);
@@ -172,17 +205,6 @@ const Preorders = () => {
       await updatePreorderStatus(id, status);
       fetchPreorders(currentPage);
       toast.success(labels[status] || 'Обновлено');
-    } catch (err) {
-      toast.error(err.message || 'Ошибка');
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Удалить предзаказ?')) return;
-    try {
-      await deletePreorder(id);
-      fetchPreorders(currentPage);
-      toast.success('Удалён');
     } catch (err) {
       toast.error(err.message || 'Ошибка');
     }
@@ -231,23 +253,26 @@ const Preorders = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1000px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                {['UID', 'Имя', 'Telegram', 'Товар', 'Кол-во', 'Комментарий', 'Статус', 'Дата', 'Файлы', 'Действия'].map(h => (
+                {['UID', 'Имя', 'Telegram', 'Товар', 'Кол-во', 'Комментарий', 'Статус', 'Оплата', 'Дата', 'Файлы', 'Действия'].map(h => (
                   <th key={h} style={thStyle}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
+                <tr><td colSpan={11} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
               ) : preorders.length === 0 ? (
-                <tr><td colSpan={10} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Предзаказов нет</td></tr>
+                <tr><td colSpan={11} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Предзаказов нет</td></tr>
               ) : preorders.map(p => {
                 const cfg = STATUS_CFG[p.status] || {};
+                const paid = isPreorderPaid(p);
+                const payCfg = PAYMENT_CFG[paid ? 'paid' : 'unpaid'];
+                const txSearch = preorderTransactionSearchQuery(p);
                 const { title: productTitle, uid: productUid, mongoId: productMongoId } = getProductInfo(p);
                 const isExpanded = expandedId === p._id;
                 return (
-                  <>
-                    <tr key={p._id}>
+                  <Fragment key={p._id}>
+                    <tr>
                       <td style={tdStyle}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                           <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#374151', fontWeight: '600' }}>{p.uid || p._id.slice(-8)}</span>
@@ -285,6 +310,28 @@ const Preorders = () => {
                       <td style={tdStyle}>
                         <span style={{ display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700', background: cfg.bg, color: cfg.color }}>{cfg.label || p.status}</span>
                       </td>
+                      <td style={tdStyle}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                          <span style={{
+                            display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700',
+                            background: payCfg.color + '22', color: payCfg.color
+                          }}>{payCfg.label}</span>
+                          {txSearch ? (
+                            <button
+                              type="button"
+                              title="Журнал транзакций (поиск по UID)"
+                              onClick={() => navigate(`/transactions?search=${encodeURIComponent(txSearch)}`)}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                padding: '0.25rem', borderRadius: '7px', border: '1.5px solid #e5e7eb', background: '#fff',
+                                color: '#6b7280', cursor: 'pointer'
+                              }}
+                            >
+                              <Receipt size={14} />
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
                       <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
                         <div style={{ fontSize: '0.8rem', color: '#374151' }}>{new Date(p.createdAt).toLocaleDateString('ru-RU')}</div>
                         <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{new Date(p.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
@@ -308,17 +355,15 @@ const Preorders = () => {
                             <button onClick={() => handleStatusChange(p._id, 'cancelled')} disabled={p.status === 'cancelled'} title="Отменить" style={{ padding: '0.35rem', borderRadius: '7px', border: '1.5px solid #fee2e2', background: '#fff5f5', cursor: p.status === 'cancelled' ? 'not-allowed' : 'pointer', color: '#ef4444', opacity: p.status === 'cancelled' ? 0.4 : 1, display: 'flex', alignItems: 'center' }}>
                               <XCircle size={13} />
                             </button>
-                            <button onClick={() => handleDelete(p._id)} title="Удалить" style={{ padding: '0.35rem', borderRadius: '7px', border: '1.5px solid #fee2e2', background: '#fff5f5', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center' }}>
-                              <Trash2 size={13} />
-                            </button>
+
                           </div>
                         )}
                       </td>
                     </tr>
                     {isExpanded && canManage && (
-                      <FilesRow key={`files-${p._id}`} preorder={p} onRefresh={() => fetchPreorders(currentPage)} />
+                      <FilesRow preorder={p} onRefresh={() => fetchPreorders(currentPage)} />
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>

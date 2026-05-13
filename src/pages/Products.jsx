@@ -12,6 +12,14 @@ import { useConfirm } from '../components/ConfirmDialog';
 import { ImageUploadInput } from '../components/FileUploadInput';
 import DigitalInventoryModal from '../components/DigitalInventoryModal';
 import toast from 'react-hot-toast';
+import { resolveMediaUrl } from '../utils/mediaUrl';
+
+function localYMD(d) {
+  const z = new Date(d);
+  return `${z.getFullYear()}-${String(z.getMonth() + 1).padStart(2, '0')}-${String(z.getDate()).padStart(2, '0')}`;
+}
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const Products = () => {
   const [activeTab, setActiveTab] = useState('youtube');
@@ -21,7 +29,9 @@ const Products = () => {
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState(25);
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [selectedGeo, setSelectedGeo] = useState('');
@@ -51,12 +61,9 @@ const Products = () => {
     title: 200,
     subTitle: 150,
     desc: 250,
-    inclusive: 200,
-    get: 200,
     counts: 100,
     price: 100,
     filter: 150,
-    link: 180,
     wholesale: 120,
     countWholesale: 120
   });
@@ -132,6 +139,11 @@ const Products = () => {
     </td>
   );
 
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchInput.trim()), 400);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
   const fetchFilters = useCallback(async () => {
     try {
       const data = await getFilters();
@@ -144,26 +156,26 @@ const Products = () => {
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const queryParams = new URLSearchParams({
-        page: currentPage,
-        search,
-        filter: selectedFilter,
-        type: selectedType,
-        geo: selectedGeo,
-        startDate,
-        endDate
-      });
-      
+      const queryParams = new URLSearchParams();
+      queryParams.set('page', String(currentPage));
+      queryParams.set('limit', String(pageSize));
+      if (debouncedSearch) queryParams.set('search', debouncedSearch);
+      if (selectedFilter) queryParams.set('filter', selectedFilter);
+      if (selectedType) queryParams.set('type', selectedType);
+      if (selectedGeo) queryParams.set('geo', selectedGeo);
+      if (startDate) queryParams.set('startDate', startDate);
+      if (endDate) queryParams.set('endDate', endDate);
+
       const data = await (activeTab === 'youtube' ? getYoutubeProducts(queryParams) : getGoogleAdsProducts(queryParams));
       setProducts(data.products);
       setTotal(data.total);
-      setPages(data.pages);
+      setPages(Math.max(1, data.pages || 1));
     } catch (err) {
       console.error('Fetch products error:', err);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, currentPage, search, selectedFilter, selectedType, selectedGeo, startDate, endDate]);
+  }, [activeTab, currentPage, pageSize, debouncedSearch, selectedFilter, selectedType, selectedGeo, startDate, endDate]);
 
   useEffect(() => {
     fetchFilters();
@@ -173,10 +185,39 @@ const Products = () => {
     fetchProducts();
   }, [fetchProducts]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, selectedFilter, selectedType, selectedGeo, startDate, endDate, pageSize, activeTab]);
+
+  useEffect(() => {
+    setCurrentPage((p) => (pages >= 1 && p > pages ? pages : p));
+  }, [pages]);
+
+  const applyDatePreset = (preset) => {
+    const today = new Date();
+    if (preset === 'today') {
+      const d = localYMD(today);
+      setStartDate(d);
+      setEndDate(d);
+    } else if (preset === '7d') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 6);
+      setStartDate(localYMD(start));
+      setEndDate(localYMD(today));
+    } else if (preset === '30d') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 29);
+      setStartDate(localYMD(start));
+      setEndDate(localYMD(today));
+    }
+    setCurrentPage(1);
+  };
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setCurrentPage(1);
-    setSearch('');
+    setSearchInput('');
+    setDebouncedSearch('');
     setSelectedFilter('');
     setSelectedType('');
     setSelectedGeo('');
@@ -195,16 +236,11 @@ const Products = () => {
         'sub_title.en': product.sub_title?.en || '',
         'desc.ru': product.desc?.ru || '',
         'desc.en': product.desc?.en || '',
-        'inclusive.ru': product.inclusive?.ru || '',
-        'inclusive.en': product.inclusive?.en || '',
-        'receive.ru': product.receive?.ru || '',
-        'receive.en': product.receive?.en || '',
         price: product.price,
         counts: product.counts,
         filter_id: product.filter_id,
         geo: product.geo,
         path_image: product.path_image,
-        link: product.link || '',
         wholesale_price: product.wholesale_price ?? '',
         count_for_wholesale: product.count_for_wholesale ?? ''
       });
@@ -212,8 +248,8 @@ const Products = () => {
     } else {
       setEditingProduct(null);
       setProductForm(activeTab === 'youtube' 
-        ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', link: '', wholesale_price: '', count_for_wholesale: '' }
-        : { type: '', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', 'inclusive.ru': '', 'inclusive.en': '', 'receive.ru': '', 'receive.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', link: '', wholesale_price: '', count_for_wholesale: '' }
+        ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', wholesale_price: '', count_for_wholesale: '' }
+        : { type: '', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', wholesale_price: '', count_for_wholesale: '' }
       );
       setGeoSearch('');
     }
@@ -242,15 +278,10 @@ const Products = () => {
     if (activeTab === 'google-ads') {
       formData.append('sub_title.ru', productForm['sub_title.ru'] || '');
       formData.append('sub_title.en', productForm['sub_title.en'] || '');
-      formData.append('inclusive.ru', productForm['inclusive.ru'] || '');
-      formData.append('inclusive.en', productForm['inclusive.en'] || '');
-      formData.append('receive.ru', productForm['receive.ru'] || '');
-      formData.append('receive.en', productForm['receive.en'] || '');
     }
     
     formData.append('price', productForm.price);
     formData.append('geo', productForm.geo);
-    formData.append('link', productForm.link || '');
     if (productForm.wholesale_price !== '' && productForm.wholesale_price !== null) {
       formData.append('wholesale_price', productForm.wholesale_price);
     }
@@ -385,8 +416,8 @@ const Products = () => {
             <input 
               type="text" 
               placeholder="Поиск товара..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               style={{ paddingLeft: '2.5rem' }}
             />
           </div>
@@ -531,10 +562,33 @@ const Products = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', fontSize: '0.875rem' }}>
             <Calendar size={16} />
-            <span>Период:</span>
+            <span>Период (дата добавления товара):</span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => applyDatePreset('today')}
+              style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', fontWeight: '600', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              Новые за сегодня
+            </button>
+            <button
+              type="button"
+              onClick={() => applyDatePreset('7d')}
+              style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', fontWeight: '600', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              За 7 дней
+            </button>
+            <button
+              type="button"
+              onClick={() => applyDatePreset('30d')}
+              style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', fontWeight: '600', background: '#e0f2fe', color: '#0369a1', border: '1px solid #7dd3fc', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              За 30 дней
+            </button>
           </div>
           <input 
             type="date" 
@@ -588,16 +642,6 @@ const Products = () => {
               <th style={{ width: `${columnWidths.desc}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Описание <Resizer onResize={(w) => handleResize('desc', w)} />
               </th>
-              {activeTab === 'google-ads' && (
-                <>
-                  <th style={{ width: `${columnWidths.inclusive}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
-                    Включено <Resizer onResize={(w) => handleResize('inclusive', w)} />
-                  </th>
-                  <th style={{ width: `${columnWidths.get}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
-                    Получаете <Resizer onResize={(w) => handleResize('get', w)} />
-                  </th>
-                </>
-              )}
               <th style={{ width: `${columnWidths.counts}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Кол-во <Resizer onResize={(w) => handleResize('counts', w)} />
               </th>
@@ -606,9 +650,6 @@ const Products = () => {
               </th>
               <th style={{ width: `${columnWidths.filter}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Фильтр <Resizer onResize={(w) => handleResize('filter', w)} />
-              </th>
-              <th style={{ width: `${columnWidths.link}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
-                Ссылка <Resizer onResize={(w) => handleResize('link', w)} />
               </th>
               <th style={{ width: `${columnWidths.wholesale}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Опт.цена <Resizer onResize={(w) => handleResize('wholesale', w)} />
@@ -657,18 +698,12 @@ const Products = () => {
                 </ClickableCell>
                 <td style={{ padding: '1rem 1.5rem' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#f3f4f6', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb' }}>
-                    {p.path_image ? <img src={`${(import.meta.env.VITE_API_URL || '').replace(/\/api\/v3$/, '')}${p.path_image}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={18} color="#9ca3af" />}
+                    {p.path_image ? <img src={resolveMediaUrl(p.path_image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={18} color="#9ca3af" />}
                   </div>
                 </td>
                 <ClickableCell text={p.title?.ru || p.title?.en || ''} style={{ fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-main)' }}>{p.title?.ru || p.title?.en || ''}</ClickableCell>
                 {activeTab === 'google-ads' && <ClickableCell text={p.sub_title?.ru || p.sub_title?.en || ''} style={{ fontSize: '0.875rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.sub_title?.ru || p.sub_title?.en || '—'}</ClickableCell>}
                 <ClickableCell text={p.desc?.ru || p.desc?.en || ''} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.desc?.ru || p.desc?.en || ''}</ClickableCell>
-                {activeTab === 'google-ads' && (
-                  <>
-                    <ClickableCell text={p.inclusive?.ru || p.inclusive?.en || ''} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.inclusive?.ru || p.inclusive?.en || '—'}</ClickableCell>
-                    <ClickableCell text={p.receive?.ru || p.receive?.en || ''} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.receive?.ru || p.receive?.en || '—'}</ClickableCell>
-                  </>
-                )}
                 <ClickableCell text={p.counts.toString()}>
                    <span style={{ padding: '0.2rem 0.6rem', borderRadius: '6px', backgroundColor: p.counts > 0 ? '#ecfdf5' : '#fef2f2', color: p.counts > 0 ? '#059669' : '#dc2626', fontSize: '0.75rem', fontWeight: '700' }}>
                      {p.counts} шт.
@@ -695,9 +730,6 @@ const Products = () => {
                   ) : (
                     <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
                   )}
-                </ClickableCell>
-                <ClickableCell text={p.link || ''} style={{ fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {p.link ? <a href={p.link} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }} onClick={e => e.stopPropagation()}>{p.link}</a> : '—'}
                 </ClickableCell>
                 <ClickableCell text={p.wholesale_price != null ? p.wholesale_price.toString() : ''} style={{ fontWeight: '600', color: '#7c3aed' }}>
                   {p.wholesale_price != null ? `$${p.wholesale_price}` : '—'}
@@ -727,12 +759,42 @@ const Products = () => {
         </table>
         
         {/* Pagination */}
-        <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Всего: <b>{total}</b> товаров</div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ opacity: currentPage === 1 ? 0.5 : 1 }}><ChevronLeft size={18} /></button>
-            <div style={{ display: 'flex', alignItems: 'center', padding: '0 1rem', fontSize: '0.875rem', fontWeight: '600' }}>{currentPage} / {pages}</div>
-            <button disabled={currentPage === pages} onClick={() => setCurrentPage(p => p + 1)} style={{ opacity: currentPage === pages ? 0.5 : 1 }}><ChevronRight size={18} /></button>
+        <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderTop: '1px solid #e5e7eb' }}>
+          <div style={{ fontSize: '0.875rem', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <div>
+              Всего в базе: <b>{total}</b> товаров
+              {!loading && total > 0 && (
+                <>
+                  {' '}
+                  · на странице{' '}
+                  <b>{(currentPage - 1) * pageSize + 1}</b>
+                  –
+                  <b>{Math.min(currentPage * pageSize, total)}</b>
+                </>
+              )}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#9ca3af', maxWidth: '420px' }}>
+              Списком грузится только выбранная страница (не все {total}+ позиций сразу). Лимит на сервере — до 100 строк за запрос.
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: '#4b5563' }}>
+              На странице
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                style={{ padding: '0.35rem 0.65rem', borderRadius: '8px', border: '1px solid #e5e7eb', fontWeight: '600' }}
+              >
+                {PAGE_SIZE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button disabled={currentPage === 1} type="button" onClick={() => setCurrentPage(p => p - 1)} style={{ opacity: currentPage === 1 ? 0.5 : 1 }}><ChevronLeft size={18} /></button>
+              <div style={{ display: 'flex', alignItems: 'center', padding: '0 1rem', fontSize: '0.875rem', fontWeight: '600', minWidth: '5rem', justifyContent: 'center' }}>{currentPage} / {pages}</div>
+              <button disabled={currentPage >= pages} type="button" onClick={() => setCurrentPage(p => p + 1)} style={{ opacity: currentPage >= pages ? 0.5 : 1 }}><ChevronRight size={18} /></button>
+            </div>
           </div>
         </div>
       </div>
@@ -785,44 +847,7 @@ const Products = () => {
                   <textarea placeholder="English" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }} value={productForm['desc.en'] || ''} onChange={(e) => setProductForm({...productForm, 'desc.en': e.target.value})} />
                 </div>
               </div>
-              {activeTab === 'google-ads' && (
-                <>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Включено</label>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                      <textarea 
-                        placeholder="Русский"
-                        style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }}
-                        value={productForm['inclusive.ru'] || ''} 
-                        onChange={(e) => setProductForm({...productForm, 'inclusive.ru': e.target.value})} 
-                      />
-                      <textarea 
-                        placeholder="English"
-                        style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }}
-                        value={productForm['inclusive.en'] || ''} 
-                        onChange={(e) => setProductForm({...productForm, 'inclusive.en': e.target.value})} 
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Получаете</label>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                      <textarea 
-                        placeholder="Русский"
-                        style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }}
-                        value={productForm['receive.ru'] || ''} 
-                        onChange={(e) => setProductForm({...productForm, 'receive.ru': e.target.value})} 
-                      />
-                      <textarea 
-                        placeholder="English"
-                        style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }}
-                        value={productForm['receive.en'] || ''} 
-                        onChange={(e) => setProductForm({...productForm, 'receive.en': e.target.value})} 
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+
               
               <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: '700', color: 'var(--primary)' }}>ГЕО (Страна товара)</label>
@@ -881,10 +906,6 @@ const Products = () => {
                     {filters.map(f => <option key={f._id} value={f._id}>{f.name.ru || f.name.en}</option>)}
                   </select>
                 </div>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Ссылка</label>
-                <input type="url" placeholder="https://..." value={productForm.link || ''} onChange={(e) => setProductForm({...productForm, link: e.target.value})} />
               </div>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ flex: 1 }}>

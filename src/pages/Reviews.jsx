@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { getReviews, deleteReview, saveReview } from '../api/reviews';
 import { useAuthStore } from '../stores/authStore';
 import { ImageUploadInput } from '../components/FileUploadInput';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const Reviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -208,7 +209,7 @@ const Reviews = () => {
                 <td style={{ padding: '0.75rem 1.5rem' }}>
                   {r.image ? (
                     <img
-                      src={`${import.meta.env.VITE_API_URL}${r.image}`}
+                      src={resolveMediaUrl(r.image)}
                       alt="review"
                       style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
                     />

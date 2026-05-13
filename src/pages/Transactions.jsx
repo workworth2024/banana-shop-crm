@@ -8,13 +8,17 @@ const TYPE_LABELS = {
   deposit_cash: 'Пополнение (касса)',
   deposit_admin: 'Пополнение (админ)',
   withdraw_admin: 'Списание (админ)',
-  order: 'Покупка'
+  order: 'Покупка',
+  preorder: 'Предзаказ',
+  service_order: 'Услуга'
 };
 const TYPE_COLORS = {
   deposit_cash: '#059669',
   deposit_admin: '#059669',
   withdraw_admin: '#ef4444',
-  order: '#3b82f6'
+  order: '#3b82f6',
+  preorder: '#8b5cf6',
+  service_order: '#0ea5e9'
 };
 
 const BALANCE_TYPES = ['deposit_cash', 'deposit_admin', 'withdraw_admin'];
@@ -73,18 +77,24 @@ function DateQuickFilters({ startDate, endDate, onSet }) {
 
 function TransactionsTable({ balanceOnly }) {
   const [searchParams] = useSearchParams();
-  const initSearch = searchParams.get('search') || '';
+  const urlSearch = searchParams.get('search') || '';
 
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState(initSearch);
-  const [search, setSearch] = useState(initSearch);
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const [search, setSearch] = useState(urlSearch);
   const [typeFilter, setTypeFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  useEffect(() => {
+    setSearchInput(urlSearch);
+    setSearch(urlSearch);
+    setCurrentPage(1);
+  }, [urlSearch]);
 
   const fetchData = useCallback(async (page = 1) => {
     setLoading(true);
@@ -129,7 +139,7 @@ function TransactionsTable({ balanceOnly }) {
             <div style={{ position: 'relative', flex: 1 }}>
               <Search size={14} style={{ position: 'absolute', left: '0.7rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
               <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
-                placeholder="Поиск по нику или UID клиента..."
+                placeholder="Ник, UID клиента или UID транзакции..."
                 style={{ width: '100%', padding: '0.55rem 0.75rem 0.55rem 2.1rem', borderRadius: '8px', border: '1.5px solid #e5e7eb', fontSize: '0.85rem', background: 'white', color: '#374151', outline: 'none', boxSizing: 'border-box' }} />
             </div>
             <button type="submit" style={{ padding: '0.55rem 1rem', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}>Поиск</button>

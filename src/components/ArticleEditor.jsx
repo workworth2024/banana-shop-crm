@@ -9,6 +9,7 @@ import Highlight from '@tiptap/extension-highlight'
 import { X, Bold, Italic, UnderlineIcon, Strikethrough, Link as LinkIcon, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Minus, Undo, Redo, Highlighter } from 'lucide-react'
 import { useCallback, useRef } from 'react'
 import api from '../api/client'
+import { resolveMediaUrl } from '../utils/mediaUrl'
 
 const MenuBar = ({ editor }) => {
   const fileRef = useRef()
@@ -32,7 +33,7 @@ const MenuBar = ({ editor }) => {
     formData.append('image', file)
     try {
       const res = await api.request('/manuals/upload-image', { method: 'POST', body: formData })
-      editor.chain().focus().setImage({ src: `${import.meta.env.VITE_API_URL}${res.url}` }).run()
+      editor.chain().focus().setImage({ src: resolveMediaUrl(res.url) }).run()
     } catch {
       alert('Ошибка загрузки изображения')
     }

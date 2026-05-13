@@ -22,8 +22,6 @@ const STATUS_LABELS = {
 const PRODUCT_TYPE_LABELS = { GoogleAdsProduct: 'Google Ads', YoutubeProduct: 'YouTube' };
 const ALL_STATUSES = ['unpaid', 'pending', 'paid', 'delivered', 'waiting_replacement', 'replaced', 'cancelled'];
 
-const VITE_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v3$/, '');
-
 const tdStyle = { padding: '0.75rem 1rem', borderRight: '1px solid #d1d5db', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top', userSelect: 'text' };
 const thStyle = { padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', borderRight: '1px solid #d1d5db', background: '#f9fafb' };
 
@@ -35,6 +33,76 @@ function CopyBtn({ value }) {
       style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0 0.2rem', display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}
     >
       <Copy size={11} />
+    </button>
+  );
+}
+
+const CRM_API_BASE = import.meta.env.VITE_API_URL || '';
+
+function ReplaceRequestPhotoThumb({ orderId, index, raw }) {
+  const r = typeof raw === 'string' ? raw.trim() : '';
+  const directCdnUrl = /^https?:\/\//i.test(r) ? r : null;
+
+  const [src, setSrc] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (directCdnUrl) {
+      setSrc(directCdnUrl);
+      setFailed(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let objectUrl = null;
+    setFailed(false);
+    setSrc(null);
+
+    fetch(`${CRM_API_BASE}/orders/${orderId}/replace-photos/${index}`, {
+      credentials: 'include',
+      redirect: 'follow',
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('bad');
+        return res.blob();
+      })
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [orderId, index, directCdnUrl]);
+
+  const openTab = () => {
+    if (!src) return;
+    window.open(src, '_blank', 'noopener,noreferrer');
+  };
+
+  if (failed) {
+    return <span style={{ fontSize: '0.72rem', color: '#ef4444' }}>нет фото</span>;
+  }
+  if (!src) {
+    return (
+      <div style={{
+        width: '72px', height: '72px', borderRadius: '8px', background: '#f3f4f6',
+        border: '1px solid #e5e7eb', flexShrink: 0,
+      }} />
+    );
+  }
+
+  return (
+    <button type="button" onClick={openTab} title="Открыть в новой вкладке" style={{
+      border: 'none', padding: 0, margin: 0, background: 'transparent', cursor: 'pointer', lineHeight: 0,
+    }}>
+      <img src={src} alt="" style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'block' }} />
     </button>
   );
 }
@@ -199,10 +267,8 @@ function EditOrderModal({ order, onClose, onRefresh }) {
               <div style={{ fontSize: '0.85rem', color: '#374151', lineHeight: 1.6 }}>{replaceRequest.reason}</div>
               {replaceRequest.photos?.length > 0 && (
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-                  {replaceRequest.photos.map((p, i) => (
-                    <a key={i} href={`${VITE_BASE}${p}`} target="_blank" rel="noopener noreferrer">
-                      <img src={`${VITE_BASE}${p}`} alt="" style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb', cursor: 'pointer' }} />
-                    </a>
+                  {replaceRequest.photos.map((_, i) => (
+                    <ReplaceRequestPhotoThumb key={i} orderId={order._id} index={i} raw={replaceRequest.photos[i]} />
                   ))}
                 </div>
               )}

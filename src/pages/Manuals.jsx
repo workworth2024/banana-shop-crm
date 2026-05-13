@@ -12,6 +12,7 @@ import ArticleEditor from '../components/ArticleEditor';
 import { useConfirm } from '../components/ConfirmDialog';
 import { FileUploadInput } from '../components/FileUploadInput';
 import toast from 'react-hot-toast';
+import { resolveMediaUrl } from '../utils/mediaUrl';
 
 const Manuals = () => {
   const [manuals, setManuals] = useState([]);
@@ -348,7 +349,7 @@ const Manuals = () => {
                   {m.link ? <a href={m.link} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'inherit', textDecoration: 'none' }}><LinkIcon size={14} /> Открыть</a> : '—'}
                 </ClickableCell>
                 <ClickableCell text={m.path_to_file} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {m.path_to_file ? <a href={`${import.meta.env.VITE_API_URL}${m.path_to_file}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', textDecoration: 'none' }}><Download size={14} /> Скачать</a> : '—'}
+                  {m.path_to_file ? <a href={resolveMediaUrl(m.path_to_file)} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary)', textDecoration: 'none' }}><Download size={14} /> Скачать</a> : '—'}
                 </ClickableCell>
                 <ClickableCell text={m.filter_id ? (m.filter_id.name.ru || m.filter_id.name.en) : ''}>
                   {m.filter_id ? (

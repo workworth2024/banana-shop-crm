@@ -1,4 +1,5 @@
 import api from './client';
+import { xhrPostFormData } from '../utils/fileTransfer';
 
 export const getPreorders = (params) =>
   api.get(`/preorders?${params.toString()}`);
@@ -9,17 +10,9 @@ export const updatePreorderStatus = (id, status) =>
 export const deletePreorder = (id) =>
   api.delete(`/preorders/${id}`);
 
-export const uploadPreorderFiles = async (id, formData) => {
+export const uploadPreorderFiles = async (id, formData, { onUploadProgress } = {}) => {
   const base = import.meta.env.VITE_API_URL || '';
-  const token = document.cookie.match(/(?:^|;\s*)token=([^;]+)/)?.[1] || '';
-  const res = await fetch(`${base}/preorders/${id}/files`, {
-    method: 'POST',
-    credentials: 'include',
-    body: formData
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Ошибка');
-  return data;
+  return xhrPostFormData(`${base}/preorders/${id}/files`, formData, { onUploadProgress });
 };
 
 export const deletePreorderFile = (id, fileId) =>

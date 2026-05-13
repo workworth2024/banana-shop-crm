@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuthStore } from '../stores/authStore';
 import { LogOut, User as UserIcon, Bell, Search, X, CheckCheck, Trash2 } from 'lucide-react';
@@ -13,11 +13,14 @@ const CATEGORY_LABELS = {
   user: 'Пользователи',
   order: 'Покупки',
   preorder: 'Предзаказы',
+  order_preorder: 'Предзаказы',
+  order_service: 'Услуги',
   replacement: 'Замены',
   support: 'Поддержка'
 };
 
 function NotifPopup({ onClose }) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState('unread');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +66,14 @@ function NotifPopup({ onClose }) {
   const markOne = async (id) => {
     await api.request(`/admin-notifications/${id}/read`, { method: 'PATCH' });
     setItems(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+  };
+
+  const handleRowOpen = async (n) => {
+    if (!n.isRead) await markOne(n._id);
+    if (n.link) {
+      navigate(n.link);
+      onClose();
+    }
   };
 
   const fmt = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -113,16 +124,19 @@ function NotifPopup({ onClose }) {
           <div style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af', fontSize: '0.85rem' }}>Нет уведомлений</div>
         ) : items.map(n => (
           <div key={n._id}
-            onClick={() => !n.isRead && markOne(n._id)}
+            onClick={() => handleRowOpen(n)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRowOpen(n); } }}
             style={{
               padding: '0.75rem 1.25rem',
               borderBottom: '1px solid #f3f4f6',
               background: n.isRead ? 'white' : '#fafbff',
-              cursor: n.isRead ? 'default' : 'pointer',
+              cursor: n.link || !n.isRead ? 'pointer' : 'default',
               display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
               transition: 'background 0.1s'
             }}
-            onMouseEnter={e => { if (!n.isRead) e.currentTarget.style.background = '#f0f4ff'; }}
+            onMouseEnter={e => { if (!n.isRead || n.link) e.currentTarget.style.background = n.isRead ? '#f9fafb' : '#f0f4ff'; }}
             onMouseLeave={e => { e.currentTarget.style.background = n.isRead ? 'white' : '#fafbff'; }}
           >
             {!n.isRead && (
@@ -244,7 +258,7 @@ const AdminLayout = () => {
 
             <div style={{ height: '24px', width: '1px', backgroundColor: '#e5e7eb' }} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+            <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', textDecoration: 'none' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <span style={{ fontSize: '0.9375rem', color: 'var(--text-main)', fontWeight: '600' }}>{user?.username}</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '500', textTransform: 'uppercase' }}>{user?.role}</span>
@@ -252,7 +266,7 @@ const AdminLayout = () => {
               <div style={{ width: '40px', height: '40px', borderRadius: '12px', backgroundColor: 'var(--bg-header)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', border: '2px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                 <UserIcon size={20} />
               </div>
-            </div>
+            </Link>
 
             <button onClick={handleLogout} title="Выйти"
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#fee2e2', color: '#ef4444', padding: 0, border: 'none', cursor: 'pointer' }}>

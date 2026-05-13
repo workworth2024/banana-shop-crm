@@ -11,6 +11,17 @@ export const useAuthStore = create((set) => ({
   login: async (username, password) => {
     try {
       const data = await api.post('/auth/login', { username, password });
+      if (data.requires2FA) return data;
+      set({ user: data.user, isAuthenticated: true, authChecked: true });
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  verify2FA: async (tempToken, code) => {
+    try {
+      const data = await api.post('/auth/2fa/verify-login', { tempToken, code });
       set({ user: data.user, isAuthenticated: true, authChecked: true });
       return data;
     } catch (error) {

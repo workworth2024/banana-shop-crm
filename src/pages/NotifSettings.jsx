@@ -22,6 +22,7 @@ const SETTINGS_META = [
     items: [
       { key: 'order_product', label: 'Заказ товара' },
       { key: 'order_preorder', label: 'Предзаказ' },
+      { key: 'order_service', label: 'Заявка на услугу' },
       { key: 'order_replacement', label: 'Запрос на замену' }
     ]
   },
