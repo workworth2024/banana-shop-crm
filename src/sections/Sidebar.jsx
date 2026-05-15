@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { useSupportStore } from '../stores/supportStore';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -172,7 +173,7 @@ const SidebarGroupItem = ({ icon: Icon, label, children }) => {
   );
 };
 
-const SidebarSubItem = ({ to, icon: Icon, label, end }) => (
+const SidebarSubItem = ({ to, icon: Icon, label, end, badge }) => (
   <NavLink
     to={to}
     end={end}
@@ -196,6 +197,16 @@ const SidebarSubItem = ({ to, icon: Icon, label, end }) => (
       <>
         <Icon size={17} style={{ color: isActive ? 'var(--primary)' : 'var(--sidebar-text)', transition: 'color 0.2s' }} />
         <span style={{ flex: 1 }}>{label}</span>
+        {badge > 0 && (
+          <span style={{
+            background: '#ef4444', color: '#fff',
+            fontSize: '0.65rem', fontWeight: 700,
+            minWidth: 18, height: 18, padding: '0 5px',
+            borderRadius: 9, display: 'inline-flex',
+            alignItems: 'center', justifyContent: 'center',
+            lineHeight: 1
+          }}>{badge > 99 ? '99+' : badge}</span>
+        )}
       </>
     )}
   </NavLink>
@@ -218,6 +229,7 @@ const SectionLabel = ({ label }) => (
 const Sidebar = () => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
+  const supportUnread = useSupportStore((s) => s.unreadActive);
 
   return (
     <div className="sidebar-container" style={{
@@ -279,7 +291,7 @@ const Sidebar = () => {
 
         <SectionLabel label="Поддержка" />
         <SidebarGroupItem icon={LifeBuoy} label="Поддержка">
-          <SidebarSubItem to="/support" icon={LifeBuoy} label="Тикеты" />
+          <SidebarSubItem to="/support" icon={LifeBuoy} label="Тикеты" badge={supportUnread} />
           <SidebarSubItem to="/contact-forms" icon={MessageSquare} label="Формы связи" />
         </SidebarGroupItem>
 

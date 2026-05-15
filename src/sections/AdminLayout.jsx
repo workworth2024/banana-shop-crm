@@ -5,6 +5,8 @@ import { useAuthStore } from '../stores/authStore';
 import { LogOut, User as UserIcon, Bell, Search, X, CheckCheck, Trash2 } from 'lucide-react';
 import api from '../api/client';
 import { io as socketIO } from 'socket.io-client';
+import { useSupportSocket } from '../hooks/useSupportSocket';
+import { useSupportStore } from '../stores/supportStore';
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'https://banana-traff-shop.com').replace('/api/v3', '');
 
@@ -178,6 +180,11 @@ const AdminLayout = () => {
   const bellRef = useRef(null);
 
   useEffect(() => { checkAuth(); }, [checkAuth]);
+
+  useSupportSocket();
+  useEffect(() => {
+    if (isAuthenticated) useSupportStore.getState().refreshUnreadCount();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (authChecked && !isAuthenticated) navigate('/login');
