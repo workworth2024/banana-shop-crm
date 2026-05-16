@@ -226,24 +226,32 @@ const SectionLabel = ({ label }) => (
   </div>
 );
 
-const Sidebar = () => {
+const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
   const supportUnread = useSupportStore((s) => s.unreadActive);
+  const location = useLocation();
+
+  React.useEffect(() => {
+    if (mobileOpen) onMobileClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   return (
-    <div className="sidebar-container" style={{
-      width: '280px',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'fixed',
-      left: 0,
-      top: 0,
-      borderRight: '1px solid rgba(255, 255, 255, 0.05)',
-      boxShadow: '4px 0 24px rgba(0,0,0,0.2)',
-      zIndex: 20
-    }}>
+    <div
+      className={`sidebar-container ${mobileOpen ? 'sidebar-open' : ''}`}
+      style={{
+        width: '280px',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        borderRight: '1px solid rgba(255, 255, 255, 0.05)',
+        boxShadow: '4px 0 24px rgba(0,0,0,0.2)',
+        zIndex: 60
+      }}>
       <div style={{
         padding: '1.75rem 1.5rem',
         display: 'flex',

@@ -18,6 +18,8 @@ export const useSupportStore = create((set, get) => ({
   messagesByTicket: {},
   customerOnlineByTicket: {},
   customerTypingByTicket: {},
+  hasMoreByTicket: {},
+  loadingOlderByTicket: {},
   unreadActive: 0,
 
   setFilter: (patch) => set((s) => ({ filters: { ...s.filters, ...patch, page: patch.page ?? 1 } })),
@@ -56,10 +58,39 @@ export const useSupportStore = create((set, get) => ({
   loadMessages: async (id) => {
     const data = await supportApi.getTicket(id);
     set((s) => ({
-      messagesByTicket: { ...s.messagesByTicket, [id]: data.messages || [] }
+      messagesByTicket: { ...s.messagesByTicket, [id]: data.messages || [] },
+      hasMoreByTicket: { ...s.hasMoreByTicket, [id]: !!data.hasMore }
     }));
     get().upsertTicket(data.ticket);
     return data;
+  },
+
+  loadOlderMessages: async (id) => {
+    const state = get();
+    if (state.loadingOlderByTicket[id]) return;
+    if (state.hasMoreByTicket[id] === false) return;
+    const cur = state.messagesByTicket[id] || [];
+    if (!cur.length) return;
+    const before = cur[0]?.createdAt;
+    if (!before) return;
+    set((s) => ({ loadingOlderByTicket: { ...s.loadingOlderByTicket, [id]: true } }));
+    try {
+      const { messages = [], hasMore } = await supportApi.getMessages(id, { before, limit: 30 });
+      set((s) => {
+        const list = s.messagesByTicket[id] || [];
+        const ids = new Set(list.map((m) => String(m._id)));
+        const merged = [...messages.filter((m) => !ids.has(String(m._id))), ...list];
+        return {
+          messagesByTicket: { ...s.messagesByTicket, [id]: merged },
+          hasMoreByTicket: { ...s.hasMoreByTicket, [id]: !!hasMore },
+          loadingOlderByTicket: { ...s.loadingOlderByTicket, [id]: false }
+        };
+      });
+      return messages.length;
+    } catch {
+      set((s) => ({ loadingOlderByTicket: { ...s.loadingOlderByTicket, [id]: false } }));
+      return 0;
+    }
   },
 
   appendMessage: (ticketId, message) => {

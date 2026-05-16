@@ -657,7 +657,7 @@ const Orders = () => {
   const handleRefresh = () => setRefreshKey(k => k + 1);
 
   return (
-    <div style={{ padding: '2rem' }}>
+    <div className="orders-page" style={{ padding: '2rem' }}>
       {editingOrder && (
         <EditOrderModal
           order={editingOrder}

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Outlet, useNavigate, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuthStore } from '../stores/authStore';
-import { LogOut, User as UserIcon, Bell, Search, X, CheckCheck, Trash2 } from 'lucide-react';
+import { LogOut, User as UserIcon, Bell, Search, X, CheckCheck, Trash2, Menu } from 'lucide-react';
 import api from '../api/client';
 import { io as socketIO } from 'socket.io-client';
 import { useSupportSocket } from '../hooks/useSupportSocket';
@@ -177,7 +177,13 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const [bellOpen, setBellOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const bellRef = useRef(null);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileNavOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileNavOpen]);
 
   useEffect(() => { checkAuth(); }, [checkAuth]);
 
@@ -222,22 +228,44 @@ const AdminLayout = () => {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-content)' }}>
-      <Sidebar />
-      <div style={{ flex: 1, marginLeft: '280px', display: 'flex', flexDirection: 'column' }}>
-        <header style={{
+    <div className="admin-shell" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-content)' }}>
+      <Sidebar mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
+      {mobileNavOpen && (
+        <div
+          onClick={() => setMobileNavOpen(false)}
+          className="sidebar-overlay"
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 55
+          }}
+        />
+      )}
+      <div className="admin-main" style={{ flex: 1, marginLeft: '280px', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <header className="admin-header" style={{
           height: '72px', backgroundColor: 'white', display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', padding: '0 2.5rem',
           borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+          gap: '0.75rem'
         }}>
-          <div style={{ position: 'relative', width: '300px' }}>
-            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-            <input type="text" placeholder="Поиск по системе..."
-              style={{ padding: '0.625rem 1rem 0.625rem 2.5rem', fontSize: '0.875rem', backgroundColor: '#f3f4f6', border: 'none', width: '100%' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+            <button
+              type="button"
+              className="burger-btn"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Меню"
+            >
+              <Menu size={22} strokeWidth={2.5} />
+            </button>
+            <div className="admin-search" style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
+              <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+              <input type="text" placeholder="Поиск по системе..."
+                style={{ padding: '0.625rem 1rem 0.625rem 2.5rem', fontSize: '0.875rem', backgroundColor: '#f3f4f6', border: 'none', width: '100%' }} />
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div className="admin-header-right" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
             <div ref={bellRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => { setBellOpen(v => !v); if (!bellOpen) fetchCount(); }}
@@ -265,8 +293,8 @@ const AdminLayout = () => {
 
             <div style={{ height: '24px', width: '1px', backgroundColor: '#e5e7eb' }} />
 
-            <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', textDecoration: 'none' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <Link to="/profile" className="admin-user-link" style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', textDecoration: 'none' }}>
+              <div className="admin-user-text" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <span style={{ fontSize: '0.9375rem', color: 'var(--text-main)', fontWeight: '600' }}>{user?.username}</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '500', textTransform: 'uppercase' }}>{user?.role}</span>
               </div>
@@ -282,7 +310,7 @@ const AdminLayout = () => {
           </div>
         </header>
 
-        <main style={{ flex: 1, padding: '2.5rem', color: 'var(--text-main)', maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
+        <main className="admin-content" style={{ flex: 1, padding: '2.5rem', color: 'var(--text-main)', maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
           <Outlet />
         </main>
       </div>

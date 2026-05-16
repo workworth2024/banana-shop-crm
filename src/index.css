@@ -113,3 +113,71 @@ input:focus, select:focus {
   background-color: var(--bg-sidebar);
   color: white;
 }
+
+/* Prevent wide tables from breaking layout / pushing burger off screen */
+.admin-shell { overflow-x: hidden; }
+.admin-main { min-width: 0; }
+.admin-content { min-width: 0; }
+
+/* Burger menu button (hidden by default, shown on mobile) */
+.burger-btn {
+  display: none;
+  background: #f3f4f6;
+  border: none;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  color: #111827;
+  flex-shrink: 0;
+  padding: 0;
+}
+.burger-btn:hover { background: #e5e7eb; }
+.burger-btn svg { display: block; stroke: currentColor; }
+
+/* ===== Responsive admin layout ===== */
+@media (max-width: 1024px) {
+  .admin-main { margin-left: 0 !important; }
+  .sidebar-container {
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+  }
+  .sidebar-container.sidebar-open { transform: translateX(0); }
+  .burger-btn { display: inline-flex; }
+  .admin-header { padding: 0 1rem !important; }
+  .admin-content { padding: 1.25rem !important; }
+}
+
+@media (max-width: 640px) {
+  .admin-search { display: none !important; }
+  .admin-header-right { gap: 0.6rem !important; }
+  .admin-user-text { display: none !important; }
+  .admin-content { padding: 0.75rem !important; }
+}
+
+/* Tables: force horizontal scroll within their card on small screens */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll > table {
+  min-width: 720px;
+}
+
+/* Orders / Replacements / Transactions / Products / Services page mobile tweaks */
+@media (max-width: 768px) {
+  .orders-page { padding: 0.75rem !important; gap: 1rem !important; }
+  .orders-page h1 { font-size: 1.2rem !important; }
+  .orders-page form { flex-wrap: wrap; }
+  .orders-page form input,
+  .orders-page form button { font-size: 0.8rem !important; }
+  .orders-page select { font-size: 0.8rem !important; min-width: 0 !important; }
+  .orders-page th, .orders-page td { padding: 0.5rem 0.6rem !important; font-size: 0.78rem !important; }
+
+  /* products / services page specifics */
+  .products-page > div:first-of-type { flex-wrap: wrap; gap: 0.5rem; }
+  .products-page input[type="text"] { font-size: 0.85rem; }
+  .products-page table { min-width: 800px !important; }
+}

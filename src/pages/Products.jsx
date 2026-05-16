@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Plus, Search, Edit2, Trash2, Youtube, Globe, Filter as FilterIcon, 
   ChevronLeft, ChevronRight, Package, Image as ImageIcon, X, Check, Copy,
@@ -22,7 +23,11 @@ function localYMD(d) {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const Products = () => {
-  const [activeTab, setActiveTab] = useState('youtube');
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') === 'google-ads' || searchParams.get('tab') === 'youtube')
+    ? searchParams.get('tab')
+    : 'youtube';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +35,8 @@ const Products = () => {
   const [pages, setPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
   const [selectedFilter, setSelectedFilter] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [selectedGeo, setSelectedGeo] = useState('');
@@ -336,7 +341,7 @@ const Products = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="orders-page products-page" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '1.875rem', fontWeight: '700', color: 'var(--text-main)' }}>Товары</h1>

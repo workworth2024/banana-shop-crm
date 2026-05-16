@@ -234,7 +234,7 @@ const Transactions = () => {
   ];
 
   return (
-    <div style={{ padding: '2rem' }}>
+    <div className="orders-page" style={{ padding: '2rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-main)', margin: '0 0 0.25rem' }}>
           {isBalanceHistory ? 'История баланса' : 'Транзакции'}

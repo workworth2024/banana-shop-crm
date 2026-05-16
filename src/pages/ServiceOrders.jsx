@@ -268,7 +268,7 @@ const ServiceOrders = () => {
   const toggleExpand = (id) => setExpandedId(prev => prev === id ? null : id);
 
   return (
-    <div style={{ padding: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="orders-page" style={{ padding: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           <h1 style={{ fontSize: '1.35rem', fontWeight: '700', color: '#111827', margin: 0 }}>История заказанных услуг</h1>

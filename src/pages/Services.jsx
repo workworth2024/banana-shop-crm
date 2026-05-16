@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Plus, Search, Edit2, Trash2, Filter as FilterIcon, 
+import { useSearchParams } from 'react-router-dom';
+import {
+  Plus, Search, Edit2, Trash2, Filter as FilterIcon,
   ChevronLeft, ChevronRight, Image as ImageIcon, X, Check,
-  Settings2, Calendar
+  Settings2, Calendar, Copy
 } from 'lucide-react';
 import { getServices, saveService, deleteService } from '../api/services';
 import { getFilters } from '../api/products';
@@ -21,7 +22,8 @@ const Services = () => {
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [selectedFilter, setSelectedFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -37,8 +39,10 @@ const Services = () => {
   const [imageFile, setImageFile] = useState(null);
   const { confirm, ConfirmNode } = useConfirm();
 
+  const [copiedId, setCopiedId] = useState(null);
+
   const [columnWidths, setColumnWidths] = useState({
-    id: 80,
+    id: 140,
     image: 80,
     title: 200,
     subTitle: 150,
@@ -51,9 +55,13 @@ const Services = () => {
     implementationPeriod: 160
   });
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text, id) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
+    if (id) {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    }
   };
 
   const handleResize = (column, newWidth) => {
@@ -88,9 +96,9 @@ const Services = () => {
     );
   };
 
-  const ClickableCell = ({ children, text, style = {} }) => (
-    <td 
-      onClick={() => copyToClipboard(text || children?.toString() || '')}
+  const ClickableCell = ({ children, text, style = {}, cellId }) => (
+    <td
+      onClick={() => copyToClipboard(text || children?.toString() || '', cellId)}
       style={{ padding: '1rem 1.5rem', cursor: 'pointer', position: 'relative', transition: 'background-color 0.2s', ...style }}
       title="Нажмите, чтобы скопировать"
       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
@@ -235,7 +243,7 @@ const Services = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="orders-page products-page" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '1.875rem', fontWeight: '700', color: 'var(--text-main)' }}>Услуги</h1>
@@ -291,7 +299,7 @@ const Services = () => {
           <thead style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
             <tr>
               <th style={{ width: `${columnWidths.id}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
-                ID <Resizer onResize={(w) => handleResize('id', w)} />
+                UID <Resizer onResize={(w) => handleResize('id', w)} />
               </th>
               <th style={{ width: `${columnWidths.image}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Фотка <Resizer onResize={(w) => handleResize('image', w)} />
@@ -333,7 +341,15 @@ const Services = () => {
               <tr><td colSpan="12" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Услуги не найдены</td></tr>
             ) : services.map(s => (
               <tr key={s._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <ClickableCell text={s._id} style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>{s._id.slice(-6)}</ClickableCell>
+                <ClickableCell text={s.uid || String(s._id)} cellId={s._id} style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <span>{s.uid || s._id.slice(-6)}</span>
+                    {copiedId === s._id
+                      ? <Check size={12} style={{ color: '#059669', flexShrink: 0 }} />
+                      : <Copy size={12} style={{ color: '#d1d5db', flexShrink: 0 }} />
+                    }
+                  </div>
+                </ClickableCell>
                 <td style={{ padding: '1rem 1.5rem' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#f3f4f6', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb' }}>
                     {s.path_image ? <img src={resolveMediaUrl(s.path_image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={18} color="#9ca3af" />}

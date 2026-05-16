@@ -174,6 +174,7 @@ const Users = () => {
 
       {/* Table */}
       <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+        <div className="table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
             <tr>
@@ -251,9 +252,10 @@ const Users = () => {
             ))}
           </tbody>
         </table>
-        
+        </div>
+
         {/* Pagination */}
-        <div style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e5e7eb' }}>
+        <div style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e5e7eb', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
             Всего: <span style={{ fontWeight: '600', color: 'var(--text-main)' }}>{total}</span> пользователей
           </div>

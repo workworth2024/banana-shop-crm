@@ -221,7 +221,7 @@ const Preorders = () => {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
+    <div className="orders-page" style={{ padding: '2rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-main)', margin: '0 0 0.25rem' }}>Предзаказы</h1>
         <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Заявки на товары не в наличии</p>

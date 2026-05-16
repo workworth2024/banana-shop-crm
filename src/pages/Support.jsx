@@ -89,7 +89,9 @@ const Support = () => {
   const messagesByTicket = useSupportStore((s) => s.messagesByTicket);
   const customerOnlineByTicket = useSupportStore((s) => s.customerOnlineByTicket);
   const customerTypingByTicket = useSupportStore((s) => s.customerTypingByTicket);
-  const { setFilter, setActive, loadList, loadMessages, appendMessage, upsertTicket } = useSupportStore.getState();
+  const hasMoreByTicket = useSupportStore((s) => s.hasMoreByTicket);
+  const loadingOlderByTicket = useSupportStore((s) => s.loadingOlderByTicket);
+  const { setFilter, setActive, loadList, loadMessages, loadOlderMessages, appendMessage, upsertTicket } = useSupportStore.getState();
 
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
@@ -97,6 +99,9 @@ const Support = () => {
   const fileInputRef = useRef(null);
   const scrollRef = useRef(null);
   const typingTimerRef = useRef(null);
+  const prevLenRef = useRef(0);
+  const stickToBottomRef = useRef(true);
+  const prevHeightRef = useRef(0);
 
   useSupportSocket();
 
@@ -114,8 +119,33 @@ const Support = () => {
   }, [active?._id]);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+    const len = messages?.length || 0;
+    const wasOlderLoad = len > prevLenRef.current && prevLenRef.current > 0 && !stickToBottomRef.current;
+    if (wasOlderLoad) {
+      el.scrollTop = el.scrollHeight - prevHeightRef.current;
+    } else if (stickToBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
+    prevLenRef.current = len;
+    prevHeightRef.current = el.scrollHeight;
   }, [messages?.length, customerTypingByTicket[active?._id]]);
+
+  useEffect(() => {
+    stickToBottomRef.current = true;
+    prevLenRef.current = 0;
+    prevHeightRef.current = 0;
+  }, [active?._id]);
+
+  const handleMessagesScroll = (e) => {
+    const el = e.currentTarget;
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (active && el.scrollTop < 40 && hasMoreByTicket[active._id] && !loadingOlderByTicket[active._id]) {
+      prevHeightRef.current = el.scrollHeight;
+      loadOlderMessages(active._id).catch(() => {});
+    }
+  };
 
   const handleSend = async () => {
     if (!active || sending) return;
@@ -324,7 +354,8 @@ const Support = () => {
               </div>
             </div>
 
-            <div ref={scrollRef} className={styles.messages}>
+            <div ref={scrollRef} className={styles.messages} onScroll={handleMessagesScroll}>
+              {loadingOlderByTicket[active._id] && <div style={{ textAlign: 'center', color: '#94a3b8', padding: '6px 0' }}>Загрузка...</div>}
               {!messages && <div style={{ margin: 'auto', color: '#94a3b8' }}>Загрузка...</div>}
               {messages && messages.length === 0 && <div style={{ margin: 'auto', color: '#94a3b8' }}>Сообщений пока нет</div>}
               {groupedMessages.map((g) => g.type === 'sep' ? (
