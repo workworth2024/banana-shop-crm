@@ -244,6 +244,7 @@ function EditOrderModal({ order, onClose, onRefresh }) {
           <div><span style={{ color: '#6b7280' }}>Покупатель:</span> <strong>{order.customerId?.username || '—'}</strong></div>
           <div><span style={{ color: '#6b7280' }}>Тип:</span> <strong>{PRODUCT_TYPE_LABELS[order.productType] || order.productType || '—'}</strong></div>
           <div style={{ gridColumn: '1/-1' }}><span style={{ color: '#6b7280' }}>Товар:</span> <strong>{order.productSnapshot?.title || '—'}</strong></div>
+          <div><span style={{ color: '#6b7280' }}>Гео:</span> <strong>{order.geo || '—'}</strong></div>
           <div><span style={{ color: '#6b7280' }}>Кол-во:</span> <strong>{order.quantity || 1}</strong></div>
           <div><span style={{ color: '#6b7280' }}>Сумма:</span> <strong style={{ color: '#059669' }}>${order.amount?.toFixed(2)}</strong></div>
         </div>
@@ -437,16 +438,16 @@ function OrdersTab({ onEdit }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1000px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-              {['ID заказа', 'Покупатель', 'ID товара', 'Название', 'Тип', 'Кол-во', 'Сумма', 'Статус', 'Файлы', 'Действия'].map(h => (
+              {['ID заказа', 'Покупатель', 'ID товара', 'Название', 'Тип', 'Гео', 'Кол-во', 'Сумма', 'Статус', 'Файлы', 'Действия'].map(h => (
                 <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={10} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
+              <tr><td colSpan={11} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
             ) : orders.length === 0 ? (
-              <tr><td colSpan={10} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Заказов нет</td></tr>
+              <tr><td colSpan={11} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Заказов нет</td></tr>
             ) : orders.map(order => (
               <tr key={order._id}>
                 <td style={tdStyle}>
@@ -485,6 +486,14 @@ function OrdersTab({ onEdit }) {
                   <span style={{ fontSize: '0.73rem', fontWeight: '600', padding: '0.15rem 0.5rem', borderRadius: '6px', background: '#f3f4f6', color: '#6b7280', whiteSpace: 'nowrap' }}>
                     {PRODUCT_TYPE_LABELS[order.productType] || order.productType || '—'}
                   </span>
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'center' }}>
+                  {order.geo ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.18rem 0.5rem', borderRadius: '20px', fontSize: '0.72rem', fontWeight: '700', background: '#eff6ff', color: '#1e40af' }}>
+                      <img src={`https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/${order.geo.toLowerCase()}.svg`} alt={order.geo} style={{ width: 14, height: 10, borderRadius: 1 }} onError={(e) => { e.target.style.display = 'none'; }} />
+                      {order.geo}
+                    </span>
+                  ) : <span style={{ color: '#9ca3af' }}>—</span>}
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'center' }}>
                   <strong>{order.quantity || 1}</strong>

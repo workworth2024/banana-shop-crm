@@ -253,16 +253,16 @@ const Preorders = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1000px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                {['UID', 'Имя', 'Telegram', 'Товар', 'Кол-во', 'Комментарий', 'Статус', 'Оплата', 'Дата', 'Файлы', 'Действия'].map(h => (
+                {['UID', 'Имя', 'Telegram', 'Товар', 'Гео', 'Кол-во', 'Комментарий', 'Статус', 'Оплата', 'Дата', 'Файлы', 'Действия'].map(h => (
                   <th key={h} style={thStyle}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={11} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
+                <tr><td colSpan={12} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
               ) : preorders.length === 0 ? (
-                <tr><td colSpan={11} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Предзаказов нет</td></tr>
+                <tr><td colSpan={12} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Предзаказов нет</td></tr>
               ) : preorders.map(p => {
                 const cfg = STATUS_CFG[p.status] || {};
                 const paid = isPreorderPaid(p);
@@ -300,6 +300,14 @@ const Preorders = () => {
                           </div>
                         )}
                         <span style={{ fontSize: '0.82rem', fontWeight: '600', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{productTitle}</span>
+                      </td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>
+                        {p.geo ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.18rem 0.5rem', borderRadius: '20px', fontSize: '0.72rem', fontWeight: '700', background: '#eff6ff', color: '#1e40af' }}>
+                            <img src={`https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/${p.geo.toLowerCase()}.svg`} alt={p.geo} style={{ width: 14, height: 10, borderRadius: 1 }} onError={(e) => { e.target.style.display = 'none'; }} />
+                            {p.geo}
+                          </span>
+                        ) : <span style={{ color: '#9ca3af' }}>—</span>}
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
                         <strong>{p.desired_quantity || 1}</strong>

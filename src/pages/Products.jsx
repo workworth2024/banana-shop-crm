@@ -233,6 +233,9 @@ const Products = () => {
   const openProductModal = (product = null) => {
     if (product) {
       setEditingProduct(product);
+      const geosArr = Array.isArray(product.geos) && product.geos.length
+        ? product.geos.map(g => ({ code: g.code, counts: Number(g.counts) || 0 }))
+        : (product.geo ? [{ code: product.geo, counts: Number(product.counts) || 0 }] : []);
       setProductForm({
         type: product.type,
         'title.ru': product.title?.ru || '',
@@ -242,9 +245,8 @@ const Products = () => {
         'desc.ru': product.desc?.ru || '',
         'desc.en': product.desc?.en || '',
         price: product.price,
-        counts: product.counts,
         filter_id: product.filter_id,
-        geo: product.geo,
+        geos: geosArr,
         path_image: product.path_image,
         wholesale_price: product.wholesale_price ?? '',
         count_for_wholesale: product.count_for_wholesale ?? ''
@@ -252,14 +254,36 @@ const Products = () => {
       setGeoSearch('');
     } else {
       setEditingProduct(null);
-      setProductForm(activeTab === 'youtube' 
-        ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', wholesale_price: '', count_for_wholesale: '' }
-        : { type: '', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, counts: 0, filter_id: '', geo: 'US', wholesale_price: '', count_for_wholesale: '' }
+      setProductForm(activeTab === 'youtube'
+        ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, filter_id: '', geos: [], wholesale_price: '', count_for_wholesale: '' }
+        : { type: '', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, filter_id: '', geos: [], wholesale_price: '', count_for_wholesale: '' }
       );
       setGeoSearch('');
     }
     setImageFile(null);
     setShowProductModal(true);
+  };
+
+  const addGeoRow = (code) => {
+    setProductForm(prev => {
+      const geos = Array.isArray(prev.geos) ? prev.geos : [];
+      if (geos.some(g => g.code === code)) return prev;
+      return { ...prev, geos: [...geos, { code, counts: 0 }] };
+    });
+  };
+
+  const updateGeoCounts = (code, value) => {
+    setProductForm(prev => ({
+      ...prev,
+      geos: (prev.geos || []).map(g => g.code === code ? { ...g, counts: Math.max(0, parseInt(value, 10) || 0) } : g)
+    }));
+  };
+
+  const removeGeoRow = (code) => {
+    setProductForm(prev => ({
+      ...prev,
+      geos: (prev.geos || []).filter(g => g.code !== code)
+    }));
   };
 
   const handleProductSubmit = async (e) => {
@@ -286,7 +310,14 @@ const Products = () => {
     }
     
     formData.append('price', productForm.price);
-    formData.append('geo', productForm.geo);
+    const geosClean = (productForm.geos || [])
+      .filter(g => g && g.code)
+      .map(g => ({ code: String(g.code).toUpperCase(), counts: Math.max(0, parseInt(g.counts, 10) || 0) }));
+    if (geosClean.length === 0) {
+      toast.error('Добавьте хотя бы одно гео');
+      return;
+    }
+    formData.append('geos', JSON.stringify(geosClean));
     if (productForm.wholesale_price !== '' && productForm.wholesale_price !== null) {
       formData.append('wholesale_price', productForm.wholesale_price);
     }
@@ -671,7 +702,11 @@ const Products = () => {
             ) : products.length === 0 ? (
               <tr><td colSpan="20" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Товары не найдены</td></tr>
             ) : products.map(p => {
-              const country = countries.find(c => c.code === p.geo);
+              const productGeos = Array.isArray(p.geos) && p.geos.length
+                ? p.geos
+                : (p.geo ? [{ code: p.geo, counts: p.counts || 0 }] : []);
+              const geoCodesText = productGeos.map(g => g.code).join(', ');
+              const totalCounts = productGeos.reduce((s, g) => s + (Number(g.counts) || 0), 0);
               return (
               <tr key={p._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <ClickableCell text={p.uid || String(p._id)} cellId={p._id} style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>
@@ -695,10 +730,18 @@ const Products = () => {
                     {p.type?.replace('-', ' ')}
                   </span>
                 </ClickableCell>
-                <ClickableCell text={p.geo}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ClickableCell text={geoCodesText}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                     <MapPin size={14} color="var(--primary)" />
-                    <span style={{ fontSize: '0.8125rem', fontWeight: '600' }} title={country?.ruName}>{p.geo || 'US'}</span>
+                    {productGeos.length === 0 ? (
+                      <span style={{ fontSize: '0.8125rem', color: '#9ca3af' }}>—</span>
+                    ) : (
+                      productGeos.map(g => (
+                        <span key={g.code} title={`${g.code}: ${g.counts} шт.`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.15rem 0.5rem', fontSize: '0.72rem', fontWeight: '700', background: '#eef2ff', color: '#4338ca', borderRadius: '6px' }}>
+                          {g.code} <span style={{ color: '#6366f1', fontWeight: '600' }}>· {g.counts}</span>
+                        </span>
+                      ))
+                    )}
                   </div>
                 </ClickableCell>
                 <td style={{ padding: '1rem 1.5rem' }}>
@@ -709,9 +752,9 @@ const Products = () => {
                 <ClickableCell text={p.title?.ru || p.title?.en || ''} style={{ fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-main)' }}>{p.title?.ru || p.title?.en || ''}</ClickableCell>
                 {activeTab === 'google-ads' && <ClickableCell text={p.sub_title?.ru || p.sub_title?.en || ''} style={{ fontSize: '0.875rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.sub_title?.ru || p.sub_title?.en || '—'}</ClickableCell>}
                 <ClickableCell text={p.desc?.ru || p.desc?.en || ''} style={{ fontSize: '0.8125rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.desc?.ru || p.desc?.en || ''}</ClickableCell>
-                <ClickableCell text={p.counts.toString()}>
-                   <span style={{ padding: '0.2rem 0.6rem', borderRadius: '6px', backgroundColor: p.counts > 0 ? '#ecfdf5' : '#fef2f2', color: p.counts > 0 ? '#059669' : '#dc2626', fontSize: '0.75rem', fontWeight: '700' }}>
-                     {p.counts} шт.
+                <ClickableCell text={String(totalCounts)}>
+                   <span style={{ padding: '0.2rem 0.6rem', borderRadius: '6px', backgroundColor: totalCounts > 0 ? '#ecfdf5' : '#fef2f2', color: totalCounts > 0 ? '#059669' : '#dc2626', fontSize: '0.75rem', fontWeight: '700' }}>
+                     {totalCounts} шт.
                    </span>
                 </ClickableCell>
                 <ClickableCell text={p.price.toString()} style={{ fontWeight: '700', color: 'var(--primary)', fontSize: '1rem' }}>${p.price}</ClickableCell>
@@ -855,47 +898,78 @@ const Products = () => {
 
               
               <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: '700', color: 'var(--primary)' }}>ГЕО (Страна товара)</label>
-                <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: '700', color: 'var(--primary)' }}>ГЕО товара (несколько)</label>
+
+                {(productForm.geos || []).length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                    {(productForm.geos || []).map(g => {
+                      const country = countries.find(c => c.code === g.code);
+                      return (
+                        <div key={g.code} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.6rem', border: '1px solid #e5e7eb', borderRadius: '8px', background: '#f9fafb' }}>
+                          <MapPin size={14} color="var(--primary)" />
+                          <div style={{ flex: 1, fontSize: '0.82rem' }}>
+                            <strong>{g.code}</strong> <span style={{ color: '#6b7280' }}>{country?.ruName || ''}</span>
+                          </div>
+                          <label style={{ fontSize: '0.72rem', color: '#6b7280' }}>Кол-во</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={g.counts}
+                            onChange={(e) => updateGeoCounts(g.code, e.target.value)}
+                            style={{ width: '90px', padding: '0.35rem 0.5rem', marginBottom: 0 }}
+                          />
+                          <button type="button" onClick={() => removeGeoRow(g.code)} style={{ padding: '0.35rem 0.55rem', background: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer' }} title="Удалить">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div style={{ position: 'relative', marginBottom: '0.6rem' }}>
                   <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-                  <input 
-                    type="text" 
-                    placeholder="Поиск страны..." 
+                  <input
+                    type="text"
+                    placeholder="Поиск страны для добавления..."
                     value={geoSearch}
                     onChange={(e) => setGeoSearch(e.target.value)}
                     style={{ paddingLeft: '2.5rem', marginBottom: 0 }}
                   />
                 </div>
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', 
-                  gap: '0.5rem', 
-                  maxHeight: '150px', 
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                  gap: '0.5rem',
+                  maxHeight: '160px',
                   overflowY: 'auto',
                   padding: '0.5rem',
                   border: '1px solid #f3f4f6',
                   borderRadius: '10px'
                 }}>
-                  {countries.filter(c => 
-                    c.name.toLowerCase().includes(geoSearch.toLowerCase()) || 
-                    c.ruName.toLowerCase().includes(geoSearch.toLowerCase()) ||
-                    c.code.toLowerCase().includes(geoSearch.toLowerCase())
+                  {countries.filter(c =>
+                    !(productForm.geos || []).some(g => g.code === c.code) && (
+                      c.name.toLowerCase().includes(geoSearch.toLowerCase()) ||
+                      c.ruName.toLowerCase().includes(geoSearch.toLowerCase()) ||
+                      c.code.toLowerCase().includes(geoSearch.toLowerCase())
+                    )
                   ).map(c => (
                     <button
                       key={c.code}
                       type="button"
-                      onClick={() => setProductForm({...productForm, geo: c.code})}
+                      onClick={() => addGeoRow(c.code)}
                       style={{
                         padding: '0.5rem',
                         fontSize: '0.75rem',
-                        backgroundColor: productForm.geo === c.code ? 'var(--primary)' : '#f9fafb',
-                        color: productForm.geo === c.code ? 'white' : 'var(--text-main)',
-                        border: productForm.geo === c.code ? 'none' : '1px solid #e5e7eb',
+                        backgroundColor: '#f9fafb',
+                        color: 'var(--text-main)',
+                        border: '1px solid #e5e7eb',
                         borderRadius: '6px',
-                        textAlign: 'left'
+                        textAlign: 'left',
+                        cursor: 'pointer'
                       }}
                     >
-                      <div style={{ fontWeight: '700' }}>{c.code}</div>
+                      <div style={{ fontWeight: '700' }}>+ {c.code}</div>
                       <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>{c.ruName}</div>
                     </button>
                   ))}

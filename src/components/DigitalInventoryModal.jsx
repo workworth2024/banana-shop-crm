@@ -3,6 +3,7 @@ import { X, Upload, Download, Trash2, RefreshCw, Copy, Check, Search, Calendar }
 import toast from 'react-hot-toast';
 import TransferProgressOverlay from './TransferProgressOverlay';
 import { xhrPostFormData, xhrDownloadBlob } from '../utils/fileTransfer';
+import countries from '../utils/countries.json';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v3';
 
@@ -50,6 +51,9 @@ function CopyButton({ text }) {
 }
 
 function DigitalInventoryModal({ product, productType, onClose, onCountsChanged }) {
+  const initialGeos = Array.isArray(product?.geos) ? product.geos : [];
+  const [productGeos, setProductGeos] = useState(initialGeos.map(g => ({ code: g.code, counts: Number(g.counts) || 0 })));
+  const [selectedGeo, setSelectedGeo] = useState(initialGeos.length === 1 ? initialGeos[0].code : '');
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({ available: 0, sold: 0 });
   const [total, setTotal] = useState(0);
@@ -86,6 +90,7 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
       if (search) params.set('search', search);
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
+      if (selectedGeo) params.set('geo', selectedGeo);
       const res = await apiFetch(
         `/digital-items/admin/${productType}/${product._id}?${params}`
       );
@@ -94,20 +99,25 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
       setTotal(data.total || 0);
       setPages(data.pages || 1);
       setStats(data.stats || { available: 0, sold: 0 });
+      if (Array.isArray(data.productGeos)) {
+        setProductGeos(data.productGeos.map(g => ({ code: g.code, counts: Number(g.counts) || 0 })));
+      }
     } catch (err) {
       toast.error(err.message);
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, search, startDate, endDate, product._id, productType]);
+  }, [page, statusFilter, search, startDate, endDate, selectedGeo, product._id, productType]);
 
-  useEffect(() => { fetchItems(page); }, [page, statusFilter, search, startDate, endDate]);
+  useEffect(() => { fetchItems(page); }, [page, statusFilter, search, startDate, endDate, selectedGeo]);
 
   const handleFiles = async (files) => {
     if (!files || files.length === 0) return;
     if (ramLow) { toast.error('Загрузка заблокирована: свободной RAM < 10%'); return; }
+    if (!selectedGeo) { toast.error('Выберите гео для загрузки файлов'); return; }
     const fd = new FormData();
     for (const f of files) fd.append('files', f);
+    fd.append('geo', selectedGeo);
     setUploading(true);
     setTransferTitle('Загрузка файлов');
     setTransferSubtitle(`${files.length} шт.`);
@@ -241,31 +251,61 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
           </div>
         )}
 
-        {/* Upload zone */}
-        <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
+        {/* Geo selector + Upload zone */}
+        <div style={{ padding: '1rem 2rem 1.25rem', borderBottom: '1px solid #f9fafb', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Гео для загрузки и фильтрации
+            </label>
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                value={selectedGeo}
+                onChange={(e) => { setSelectedGeo(e.target.value); setPage(1); }}
+                style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1.5px solid #e5e7eb', fontSize: '0.9rem', background: '#fff', color: '#374151', minWidth: '200px' }}
+              >
+                <option value="">— Выберите гео —</option>
+                {productGeos.map(g => {
+                  const c = countries.find(co => co.code === g.code);
+                  return (
+                    <option key={g.code} value={g.code}>
+                      {g.code} · {c?.ruName || g.code} ({g.counts})
+                    </option>
+                  );
+                })}
+              </select>
+              {productGeos.length === 0 && (
+                <span style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: '600' }}>
+                  У товара не задано ни одного гео — добавьте в карточке товара
+                </span>
+              )}
+            </div>
+          </div>
           <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => !uploading && !ramLow && fileInputRef.current?.click()}
+            onDragOver={!selectedGeo ? undefined : handleDragOver}
+            onDragLeave={!selectedGeo ? undefined : handleDragLeave}
+            onDrop={!selectedGeo ? undefined : handleDrop}
+            onClick={() => !uploading && !ramLow && selectedGeo && fileInputRef.current?.click()}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
-              padding: '1rem', border: `2px dashed ${dragOver ? '#eab308' : ramLow ? '#fca5a5' : '#e5e7eb'}`,
-              borderRadius: '12px', cursor: uploading || ramLow ? 'not-allowed' : 'pointer',
-              background: dragOver ? '#fefce8' : ramLow ? '#fff7f7' : '#fafafa',
+              padding: '1rem', border: `2px dashed ${!selectedGeo ? '#e5e7eb' : dragOver ? '#eab308' : ramLow ? '#fca5a5' : '#e5e7eb'}`,
+              borderRadius: '12px', cursor: uploading || ramLow || !selectedGeo ? 'not-allowed' : 'pointer',
+              background: !selectedGeo ? '#f9fafb' : dragOver ? '#fefce8' : ramLow ? '#fff7f7' : '#fafafa',
+              opacity: !selectedGeo ? 0.55 : 1,
               transition: 'all 0.2s', color: '#6b7280', fontWeight: '500', fontSize: '0.9rem',
               userSelect: 'none'
             }}
           >
             <Upload size={20} />
-            {uploading ? 'Загрузка...' : ramLow ? 'Загрузка заблокирована (мало RAM)' : dragOver ? 'Отпустите для загрузки' : 'Выберите или перетащите файлы сюда'}
+            {!selectedGeo
+              ? 'Сначала выберите гео загрузки'
+              : uploading ? 'Загрузка...' : ramLow ? 'Загрузка заблокирована (мало RAM)' : dragOver ? 'Отпустите для загрузки' : `Выберите или перетащите файлы (гео: ${selectedGeo})`}
             <input
               ref={fileInputRef}
               type="file"
               multiple
               style={{ display: 'none' }}
               onChange={handleInputChange}
-              disabled={uploading || ramLow}
+              disabled={uploading || ramLow || !selectedGeo}
             />
           </div>
         </div>
@@ -341,6 +381,7 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
               <thead>
                 <tr style={{ background: '#f9fafb' }}>
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>Файл</th>
+                  <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>Гео</th>
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>Размер</th>
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>Статус</th>
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>UID</th>
@@ -352,6 +393,21 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
                   <tr key={item._id} style={{ borderBottom: '1px solid #f9fafb' }}>
                     <td style={{ padding: '0.6rem 0.75rem', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.originalName}>
                       {item.originalName}
+                    </td>
+                    <td style={{ padding: '0.6rem 0.75rem' }}>
+                      {item.geo ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600, color: '#374151', fontSize: '0.8rem' }}>
+                          <img
+                            src={`https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/${String(item.geo).toLowerCase()}.svg`}
+                            alt={item.geo}
+                            style={{ width: 16, height: 12, borderRadius: 2 }}
+                            onError={(e) => { e.target.style.display = 'none' }}
+                          />
+                          {item.geo}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>—</span>
+                      )}
                     </td>
                     <td style={{ padding: '0.6rem 0.75rem', color: '#6b7280' }}>{formatSize(item.fileSize)}</td>
                     <td style={{ padding: '0.6rem 0.75rem' }}>
