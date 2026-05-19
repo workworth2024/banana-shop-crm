@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, ChevronDown, ChevronUp, Trash2, Edit2, X, RefreshCw, DollarSign, Copy } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Trash2, Edit2, X, RefreshCw, DollarSign, Copy, Receipt } from 'lucide-react';
 import {
   getAllOrders, updateOrderStatus, deleteOrder,
   getOrderReplaceRequest, getAvailableItemsForOrder,
@@ -10,15 +10,24 @@ import { useConfirm } from '../components/ConfirmDialog';
 import toast from 'react-hot-toast';
 
 const STATUS_COLORS = {
-  unpaid: '#9ca3af', pending: '#f59e0b', paid: '#3b82f6',
+  unpaid: '#9ca3af', pending: '#f59e0b', paid: '#6366f1',
   delivered: '#059669', cancelled: '#ef4444', replaced: '#8b5cf6',
   waiting_replacement: '#f97316'
 };
 const STATUS_LABELS = {
-  unpaid: 'Не оплачен', pending: 'Ожидает', paid: 'Оплачен',
+  unpaid: 'Ожидает', pending: 'Ожидает', paid: 'Принят',
   delivered: 'Доставлен', cancelled: 'Отменён', replaced: 'Заменён',
   waiting_replacement: 'Ждёт замены'
 };
+const PAYMENT_CFG = { unpaid: { color: '#9ca3af', label: 'Не оплачен' }, paid: { color: '#3b82f6', label: 'Оплачен' } };
+
+function isOrderPaid(order) {
+  return order.status !== 'unpaid';
+}
+
+function orderTxSearch(order) {
+  return order.uid || '';
+}
 const PRODUCT_TYPE_LABELS = { GoogleAdsProduct: 'Google Ads', YoutubeProduct: 'YouTube' };
 const ALL_STATUSES = ['unpaid', 'pending', 'paid', 'delivered', 'waiting_replacement', 'replaced', 'cancelled'];
 
@@ -372,6 +381,7 @@ function DateQuickFilters({ startDate, endDate, onSet }) {
 
 function OrdersTab({ onEdit }) {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initSearch = searchParams.get('search') || '';
 
   const [orders, setOrders] = useState([]);
@@ -438,16 +448,16 @@ function OrdersTab({ onEdit }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1000px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-              {['ID заказа', 'Покупатель', 'ID товара', 'Название', 'Тип', 'Гео', 'Кол-во', 'Сумма', 'Статус', 'Файлы', 'Действия'].map(h => (
+              {['ID заказа', 'Покупатель', 'ID товара', 'Название', 'Тип', 'Гео', 'Кол-во', 'Сумма', 'Статус', 'Оплата', 'Файлы', 'Действия'].map(h => (
                 <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={11} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
+              <tr><td colSpan={12} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
             ) : orders.length === 0 ? (
-              <tr><td colSpan={11} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Заказов нет</td></tr>
+              <tr><td colSpan={12} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Заказов нет</td></tr>
             ) : orders.map(order => (
               <tr key={order._id}>
                 <td style={tdStyle}>
@@ -505,6 +515,29 @@ function OrdersTab({ onEdit }) {
                   <StatusBadge status={order.status} />
                   {order.replacements?.length > 0 && (
                     <div style={{ fontSize: '0.67rem', color: '#8b5cf6', marginTop: '0.2rem' }}>× {order.replacements.length} замен</div>
+                  )}
+                </td>
+                <td style={tdStyle}>
+                  {order.status === 'cancelled' ? (
+                    <span style={{ color: '#9ca3af', fontSize: '0.73rem' }}>—</span>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      <span style={{
+                        display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700',
+                        background: (isOrderPaid(order) ? PAYMENT_CFG.paid.color : PAYMENT_CFG.unpaid.color) + '22',
+                        color: isOrderPaid(order) ? PAYMENT_CFG.paid.color : PAYMENT_CFG.unpaid.color
+                      }}>
+                        {isOrderPaid(order) ? PAYMENT_CFG.paid.label : PAYMENT_CFG.unpaid.label}
+                      </span>
+                      <button
+                        type="button"
+                        title="Перейти к транзакции"
+                        onClick={() => navigate(`/transactions?search=${encodeURIComponent(orderTxSearch(order))}`)}
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.25rem', borderRadius: '7px', border: '1.5px solid #e5e7eb', background: '#fff', color: '#6b7280', cursor: 'pointer' }}
+                      >
+                        <Receipt size={14} />
+                      </button>
+                    </div>
                   )}
                 </td>
                 <td style={tdStyle}><FilesCell items={order.digitalItemIds} /></td>
