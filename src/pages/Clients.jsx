@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Check, X, ChevronLeft, ChevronRight, DollarSign, Eye, RefreshCw, KeyRound, ShoppingCart, ArrowLeftRight, Repeat2, Briefcase } from 'lucide-react';
+import { Search, Check, X, ChevronLeft, ChevronRight, DollarSign, Eye, RefreshCw, KeyRound, ShoppingCart, ArrowLeftRight, Repeat2, Briefcase, GitBranch } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getClients, toggleClientStatus, adjustClientBalance, resetClientPassword } from '../api/clients';
+import { getClients, getClient, toggleClientStatus, adjustClientBalance, resetClientPassword, setClientReferrer } from '../api/clients';
 import { useAuthStore } from '../stores/authStore';
 
 const StatusBadge = ({ active }) => (
@@ -72,6 +72,12 @@ const Clients = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const [showReferrerModal, setShowReferrerModal] = useState(false);
+  const [referrerCodeInput, setReferrerCodeInput] = useState('');
+  const [referrerBackfill, setReferrerBackfill] = useState(true);
+  const [referrerLoading, setReferrerLoading] = useState(false);
+  const [clientReferrerInfo, setClientReferrerInfo] = useState(null);
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
@@ -165,9 +171,52 @@ const Clients = () => {
     }
   };
 
-  const openDetail = (client) => {
+  const openDetail = async (client) => {
     setSelectedClient(client);
+    setClientReferrerInfo(null);
     setShowDetailModal(true);
+    try {
+      const data = await getClient(client._id);
+      if (data?.customer) {
+        setSelectedClient(data.customer);
+        setClientReferrerInfo(data.customer.referredBy || null);
+      }
+    } catch {}
+  };
+
+  const openReferrerModal = (client) => {
+    setSelectedClient(client);
+    setReferrerCodeInput('');
+    setReferrerBackfill(true);
+    setClientReferrerInfo(client?.referredBy || null);
+    setShowReferrerModal(true);
+    getClient(client._id).then(data => {
+      if (data?.customer?.referredBy) {
+        setClientReferrerInfo(data.customer.referredBy);
+      }
+    }).catch(() => {});
+  };
+
+  const handleReferrerSubmit = async (e, action = 'set') => {
+    if (e?.preventDefault) e.preventDefault();
+    setReferrerLoading(true);
+    try {
+      const code = action === 'clear' ? '' : referrerCodeInput.trim();
+      const res = await setClientReferrer(selectedClient._id, code, referrerBackfill);
+      if (action === 'clear') {
+        toast.success('Реферер удалён');
+      } else {
+        toast.success(res.backfilled > 0
+          ? `Реферер назначен. Доначислено по ${res.backfilled} заказам`
+          : 'Реферер назначен');
+      }
+      setShowReferrerModal(false);
+      fetchClients();
+    } catch (err) {
+      toast.error(err.message || 'Ошибка');
+    } finally {
+      setReferrerLoading(false);
+    }
   };
 
   const navToOrders = (username) => {
@@ -316,6 +365,13 @@ const Clients = () => {
                           <KeyRound size={16} />
                         </button>
                         <button
+                          onClick={() => openReferrerModal(c)}
+                          style={{ padding: '0.5rem', backgroundColor: '#faf5ff', color: '#7c3aed', borderRadius: '8px' }}
+                          title="Назначить реферера"
+                        >
+                          <GitBranch size={16} />
+                        </button>
+                        <button
                           onClick={() => handleToggleStatus(c)}
                           style={{
                             padding: '0.5rem',
@@ -385,6 +441,10 @@ const Clients = () => {
                 { label: 'Telegram ник', value: selectedClient.telegramUsername ? `@${selectedClient.telegramUsername}` : '—' },
                 { label: 'Баланс', value: `$${selectedClient.balance.toFixed(2)}` },
                 { label: 'Реферальный код', value: selectedClient.referralCode },
+                { label: 'Бонусный баланс', value: `$${(selectedClient.bonusBalance || 0).toFixed(2)}` },
+                { label: 'Приглашён по реф. ссылке', value: clientReferrerInfo
+                  ? `${clientReferrerInfo.username || ''}${clientReferrerInfo.telegramUsername ? ' (@' + clientReferrerInfo.telegramUsername + ')' : ''} · код ${clientReferrerInfo.referralCode || '—'}`
+                  : '— (не указан)' },
                 { label: '2FA', value: selectedClient.twoFAEnabled ? 'Включён' : 'Выключен' },
                 { label: 'Статус', value: selectedClient.status ? 'Активен' : 'Заблокирован' },
                 { label: 'Последняя активность', value: selectedClient.isOnline ? 'Сейчас онлайн' : formatLastSeen(selectedClient.lastSeen) },
@@ -456,6 +516,89 @@ const Clients = () => {
                 <button type="button" onClick={() => setShowPasswordModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Отмена</button>
                 <button type="submit" disabled={passwordLoading} style={{ flex: 1 }}>
                   {passwordLoading ? 'Сохранение...' : 'Сменить'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showReferrerModal && selectedClient && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '20px', width: '100%', maxWidth: '440px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h2 style={{ fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <GitBranch size={18} style={{ color: '#7c3aed' }} /> Реферер клиента
+                </h2>
+                <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.25rem' }}>{selectedClient.username}</p>
+              </div>
+              <button type="button" onClick={() => setShowReferrerModal(false)} style={{ padding: '0.5rem', backgroundColor: '#d1d5db', color: '#111827', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.72rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.35rem' }}>
+                Текущий реферер
+              </div>
+              {clientReferrerInfo ? (
+                <div style={{ fontSize: '0.88rem', color: '#111827', fontWeight: 600 }}>
+                  {clientReferrerInfo.username}
+                  {clientReferrerInfo.telegramUsername && (
+                    <span style={{ color: '#0ea5e9', marginLeft: '0.4rem', fontWeight: 500 }}>@{clientReferrerInfo.telegramUsername}</span>
+                  )}
+                  <div style={{ fontSize: '0.78rem', color: '#6b7280', fontFamily: 'monospace', marginTop: '0.25rem', fontWeight: 500 }}>
+                    Код: {clientReferrerInfo.referralCode || '—'}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.85rem', color: '#9ca3af' }}>— Не задан —</div>
+              )}
+            </div>
+
+            <form onSubmit={handleReferrerSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                  Реф. код нового реферера
+                </label>
+                <input
+                  type="text"
+                  placeholder="Например: ABC123DEF4"
+                  value={referrerCodeInput}
+                  onChange={(e) => setReferrerCodeInput(e.target.value.toUpperCase())}
+                  style={{ fontFamily: 'monospace', letterSpacing: '0.04em' }}
+                />
+                <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.3rem' }}>
+                  Реф. код можно найти в карточке клиента-реферера.
+                </div>
+              </div>
+
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.55rem 0.75rem', borderRadius: '10px',
+                background: referrerBackfill ? '#faf5ff' : '#f9fafb',
+                border: `1.5px solid ${referrerBackfill ? '#a855f7' : '#e5e7eb'}`,
+                cursor: 'pointer', fontSize: '0.85rem', color: '#374151', fontWeight: 600
+              }}>
+                <input type="checkbox" checked={referrerBackfill} onChange={(e) => setReferrerBackfill(e.target.checked)} />
+                Доначислить % по всем прошлым заказам клиента
+              </label>
+
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                {clientReferrerInfo && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleReferrerSubmit(e, 'clear')}
+                    disabled={referrerLoading}
+                    style={{ flex: '0 0 auto', backgroundColor: '#fef2f2', color: '#dc2626', fontWeight: 600 }}
+                  >
+                    Удалить реферера
+                  </button>
+                )}
+                <button type="button" onClick={() => setShowReferrerModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Отмена</button>
+                <button type="submit" disabled={referrerLoading || !referrerCodeInput.trim()} style={{ flex: 1, backgroundColor: '#7c3aed' }}>
+                  {referrerLoading ? 'Сохранение...' : 'Назначить'}
                 </button>
               </div>
             </form>

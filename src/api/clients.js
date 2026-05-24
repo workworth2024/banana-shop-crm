@@ -22,3 +22,10 @@ export const resetClientPassword = (id, newPassword) =>
     body: JSON.stringify({ newPassword }),
     headers: { 'Content-Type': 'application/json' }
   });
+
+export const setClientReferrer = (id, referralCode, backfill = true) =>
+  api.request(`/customers/${id}/referrer`, {
+    method: 'PATCH',
+    body: JSON.stringify({ referralCode, backfill }),
+    headers: { 'Content-Type': 'application/json' }
+  });

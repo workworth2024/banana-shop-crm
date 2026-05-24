@@ -25,7 +25,8 @@ import {
   ArrowLeftRight,
   Settings,
   Layers,
-  FileText
+  FileText,
+  GitBranch
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, label, end }) => (
@@ -286,6 +287,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         </SidebarGroupItem>
 
         <SectionLabel label="Платежи" />
+        <SidebarItem to="/referral" icon={GitBranch} label="Реферальная система" />
         <SidebarItem to="/transactions" icon={ArrowLeftRight} label="Транзакции" />
         <SidebarItem to="/balance-history" icon={Wallet} label="История баланса" />
 
