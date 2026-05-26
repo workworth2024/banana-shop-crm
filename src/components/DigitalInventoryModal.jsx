@@ -128,7 +128,20 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
         fd,
         { onUploadProgress: (p) => setTransferProgress(p) }
       );
-      toast.success(`Загружено ${data.uploaded} файл(ов). Остаток: ${data.newCount}`);
+      if (data.uploaded > 0) {
+        toast.success(`Загружено ${data.uploaded} файл(ов). Остаток: ${data.newCount}`);
+      }
+      if (data.skipped && data.skipped.length > 0) {
+        const names = data.skipped.map(s => {
+          const geoNote = s.existingGeo && s.existingGeo !== selectedGeo ? ` (гео: ${s.existingGeo})` : '';
+          const reasonNote = s.reason === 'name_duplicate' ? ' [дубль по имени]' : ' [дубль по содержимому]';
+          return `• ${s.originalName}${geoNote}${reasonNote}`;
+        }).join('\n');
+        toast.error(`Пропущено ${data.skipped.length} дубл${data.skipped.length === 1 ? 'ь' : 'я/ей'} — файл уже есть в инвентаре:\n${names}`, { duration: 8000 });
+      }
+      if (data.uploaded === 0 && (!data.skipped || data.skipped.length === 0)) {
+        toast.error('Ни один файл не был загружен');
+      }
       fetchItems(1);
       setPage(1);
       if (onCountsChanged) onCountsChanged(data.newCount);

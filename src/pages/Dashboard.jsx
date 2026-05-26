@@ -72,8 +72,13 @@ const Delta = ({ cur, prev }) => {
   );
 };
 
-const KpiCard = ({ icon: Icon, label, value, delta, suffix }) => (
-  <div className={styles.card}>
+const KpiCard = ({ icon: Icon, label, value, delta, suffix, onClick }) => (
+  <div
+    className={styles.card}
+    onClick={onClick}
+    style={onClick ? { cursor: 'pointer' } : undefined}
+    title={onClick ? 'Открыть подробнее' : undefined}
+  >
     <div className={styles.kpiHead}>
       <span className={styles.kpiLabel}>{label}</span>
       <span className={styles.kpiIcon}><Icon size={16} /></span>
@@ -209,27 +214,35 @@ const Dashboard = () => {
         <>
           <div className={styles.kpiGrid}>
             <KpiCard icon={Users} label="Новых пользователей" value={fmtInt(data.kpi.newUsers.value)}
-              delta={<Delta cur={data.kpi.newUsers.value} prev={data.kpi.newUsers.prev} />} />
+              delta={<Delta cur={data.kpi.newUsers.value} prev={data.kpi.newUsers.prev} />}
+              onClick={() => navigate('/clients')} />
             <KpiCard icon={Wifi} label="Сейчас онлайн"
-              value={<><span className={styles.dot} />{fmtInt(data.kpi.online.value)}</>} delta={null} />
+              value={<><span className={styles.dot} />{fmtInt(data.kpi.online.value)}</>} delta={null}
+              onClick={() => navigate('/clients')} />
             <KpiCard icon={Wallet} label="Пополнили баланс"
               value={fmtInt(data.kpi.depositors.value)}
-              delta={<Delta cur={data.kpi.depositors.value} prev={data.kpi.depositors.prev} />} />
+              delta={<Delta cur={data.kpi.depositors.value} prev={data.kpi.depositors.prev} />}
+              onClick={() => navigate('/transactions')} />
             <KpiCard icon={TrendingUp} label="Сумма пополнений"
               value={fmtMoney(data.kpi.depositSum.value)}
-              delta={<Delta cur={data.kpi.depositSum.value} prev={data.kpi.depositSum.prev} />} />
+              delta={<Delta cur={data.kpi.depositSum.value} prev={data.kpi.depositSum.prev} />}
+              onClick={() => navigate('/transactions')} />
 
             <KpiCard icon={ShoppingCart} label={`Заказы: ${fmtInt(data.kpi.orders.count)}`}
               value={fmtMoney(data.kpi.orders.sum)}
-              delta={<Delta cur={data.kpi.orders.sum} prev={data.kpi.orders.prevSum} />} />
+              delta={<Delta cur={data.kpi.orders.sum} prev={data.kpi.orders.prevSum} />}
+              onClick={() => navigate('/orders')} />
             <KpiCard icon={Briefcase} label={`Услуги: ${fmtInt(data.kpi.services.count)}`}
               value={fmtMoney(data.kpi.services.sum)}
-              delta={<Delta cur={data.kpi.services.sum} prev={data.kpi.services.prevSum} />} />
+              delta={<Delta cur={data.kpi.services.sum} prev={data.kpi.services.prevSum} />}
+              onClick={() => navigate('/orders/services')} />
             <KpiCard icon={Clock} label={`Предзаказы: ${fmtInt(data.kpi.preorders.count)}`}
               value={fmtMoney(data.kpi.preorders.sum)}
-              delta={<Delta cur={data.kpi.preorders.sum} prev={data.kpi.preorders.prevSum} />} />
+              delta={<Delta cur={data.kpi.preorders.sum} prev={data.kpi.preorders.prevSum} />}
+              onClick={() => navigate('/preorders')} />
             <KpiCard icon={Ticket} label="Открытые тикеты"
-              value={fmtInt(data.kpi.openTickets.value)} delta={null} />
+              value={fmtInt(data.kpi.openTickets.value)} delta={null}
+              onClick={() => navigate('/support')} />
           </div>
 
           <div className={styles.chartGrid}>

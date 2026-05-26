@@ -22,7 +22,7 @@ const STATUS_LABELS = {
 const PAYMENT_CFG = { unpaid: { color: '#9ca3af', label: 'Не оплачен' }, paid: { color: '#3b82f6', label: 'Оплачен' } };
 
 function isOrderPaid(order) {
-  return order.status !== 'unpaid';
+  return !!order.paidAt;
 }
 
 function orderTxSearch(order) {
@@ -518,17 +518,15 @@ function OrdersTab({ onEdit }) {
                   )}
                 </td>
                 <td style={tdStyle}>
-                  {order.status === 'cancelled' ? (
-                    <span style={{ color: '#9ca3af', fontSize: '0.73rem' }}>—</span>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
-                      <span style={{
-                        display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700',
-                        background: (isOrderPaid(order) ? PAYMENT_CFG.paid.color : PAYMENT_CFG.unpaid.color) + '22',
-                        color: isOrderPaid(order) ? PAYMENT_CFG.paid.color : PAYMENT_CFG.unpaid.color
-                      }}>
-                        {isOrderPaid(order) ? PAYMENT_CFG.paid.label : PAYMENT_CFG.unpaid.label}
-                      </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    <span style={{
+                      display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700',
+                      background: (isOrderPaid(order) ? PAYMENT_CFG.paid.color : PAYMENT_CFG.unpaid.color) + '22',
+                      color: isOrderPaid(order) ? PAYMENT_CFG.paid.color : PAYMENT_CFG.unpaid.color
+                    }}>
+                      {isOrderPaid(order) ? PAYMENT_CFG.paid.label : PAYMENT_CFG.unpaid.label}
+                    </span>
+                    {isOrderPaid(order) && (
                       <button
                         type="button"
                         title="Перейти к транзакции"
@@ -537,8 +535,8 @@ function OrdersTab({ onEdit }) {
                       >
                         <Receipt size={14} />
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </td>
                 <td style={tdStyle}><FilesCell items={order.digitalItemIds} /></td>
                 <td style={{ ...tdStyle, borderRight: 'none' }}>

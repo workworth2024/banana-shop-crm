@@ -291,6 +291,7 @@ const Clients = () => {
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Клиент</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Telegram</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Баланс</th>
+              <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#7c3aed', textTransform: 'uppercase' }}>Бонус</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Статус</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Online</th>
               <th style={{ padding: '1rem 1.5rem', textAlign: 'right' }}></th>
@@ -298,9 +299,9 @@ const Clients = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Загрузка...</td></tr>
+              <tr><td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Загрузка...</td></tr>
             ) : clients.length === 0 ? (
-              <tr><td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Клиенты не найдены</td></tr>
+              <tr><td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Клиенты не найдены</td></tr>
             ) : clients.map((c) => (
               <tr key={c._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '1rem 1.5rem' }}>
@@ -327,6 +328,15 @@ const Clients = () => {
                   <span style={{ fontWeight: '700', color: c.balance > 0 ? '#059669' : 'var(--text-main)' }}>
                     ${c.balance.toFixed(2)}
                   </span>
+                </td>
+                <td style={{ padding: '1rem 1.5rem' }}>
+                  {(c.bonusBalance ?? 0) > 0 ? (
+                    <span style={{ fontWeight: '700', color: '#7c3aed' }}>
+                      ${(c.bonusBalance).toFixed(2)}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#d1d5db', fontSize: '0.875rem' }}>—</span>
+                  )}
                 </td>
                 <td style={{ padding: '1rem 1.5rem' }}>
                   <StatusBadge active={c.status} />
