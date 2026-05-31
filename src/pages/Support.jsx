@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Search, Send, Paperclip, CheckCheck, Check, Lock, RefreshCw, MessageSquare, UserPlus, Image as ImageIcon } from 'lucide-react';
+import { Search, Send, Paperclip, CheckCheck, Check, Lock, RefreshCw, MessageSquare, UserPlus, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { useSupportStore } from '../stores/supportStore';
 import { useSupportSocket, supportEmit } from '../hooks/useSupportSocket';
 import supportApi from '../api/support';
@@ -222,7 +222,7 @@ const Support = () => {
   }, [messages]);
 
   return (
-    <div className={styles.wrap}>
+    <div className={`${styles.wrap} ${active ? styles.hasActive : ''}`}>
       <aside className={styles.aside}>
         <div className={styles.asideHead}>
           <div className={styles.asideTitle}>
@@ -320,6 +320,9 @@ const Support = () => {
         ) : (
           <>
             <div className={styles.mainHead}>
+              <button className={styles.backBtn} onClick={() => setActive(null)} aria-label="Назад к списку" title="Назад">
+                <ArrowLeft size={20} />
+              </button>
               <div className={styles.mainHeadLeft}>
                 <div className={`${styles.mainAvatar} ${customerOnlineByTicket[active._id] ? styles.mainAvatarOnline : ''}`}>
                   {initials(active.customerId?.username || active.customerId?.email || 'C')}

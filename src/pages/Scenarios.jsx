@@ -72,7 +72,7 @@ function StepEditor({ step, index, onChange, onRemove, onMoveUp, onMoveDown, isF
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '0.6rem' }}>
+      <div className="crm-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '0.6rem' }}>
         <div>
           <label style={labelStyle}>Название (RU) *</label>
           <input style={inputStyle} value={step.label?.ru || ''} onChange={e => updateLang('label', 'ru', e.target.value)} placeholder="Название поля" />
@@ -91,7 +91,7 @@ function StepEditor({ step, index, onChange, onRemove, onMoveUp, onMoveDown, isF
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem', marginBottom: '0.6rem' }}>
+      <div className="crm-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem', marginBottom: '0.6rem' }}>
         <div>
           <label style={labelStyle}>Тип поля *</label>
           <select style={{ ...inputStyle, background: '#fff' }} value={step.fieldType} onChange={e => update('fieldType', e.target.value)}>
@@ -252,7 +252,7 @@ const Scenarios = () => {
   return (
     <div style={{ padding: '1.5rem', maxWidth: '1100px', margin: '0 auto' }}>
       {ConfirmNode}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div className="crm-page-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           <h1 style={{ fontSize: '1.35rem', fontWeight: '700', color: '#111827', margin: 0 }}>Сценарии</h1>
           <p style={{ color: '#6b7280', fontSize: '0.82rem', margin: '0.2rem 0 0' }}>Шаблоны шагов для заказа услуг</p>
@@ -322,15 +322,15 @@ const Scenarios = () => {
       )}
 
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem', overflowY: 'auto' }}>
-          <div style={{ background: '#fff', borderRadius: '14px', width: '100%', maxWidth: '720px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', padding: '1.75rem' }}>
+        <div className="crm-modal" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem', overflowY: 'auto' }}>
+          <div className="crm-modal-card" style={{ background: '#fff', borderRadius: '14px', width: '100%', maxWidth: '720px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', padding: '1.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
               <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700' }}>{editing ? 'Редактировать сценарий' : 'Новый сценарий'}</h2>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={18} /></button>
             </div>
 
             <form onSubmit={handleSave}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div className="crm-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                 <div>
                   <label style={labelStyle}>Название (RU) *</label>
                   <input style={inputStyle} value={form.title.ru} onChange={e => setForm(f => ({ ...f, title: { ...f.title, ru: e.target.value } }))} placeholder="Название сценария" required />

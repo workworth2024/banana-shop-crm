@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Outlet, useNavigate, Link } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuthStore } from '../stores/authStore';
-import { LogOut, User as UserIcon, Bell, Search, X, CheckCheck, Trash2, Menu } from 'lucide-react';
+import { LogOut, User as UserIcon, Bell, X, CheckCheck, Trash2, Menu, LayoutGrid, Radar } from 'lucide-react';
 import api from '../api/client';
 import { io as socketIO } from 'socket.io-client';
 import { useSupportSocket } from '../hooks/useSupportSocket';
@@ -175,6 +175,8 @@ function NotifPopup({ onClose }) {
 const AdminLayout = () => {
   const { user, logout, checkAuth, isAuthenticated, authChecked } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isTracking = location.pathname.startsWith('/tracking');
   const [bellOpen, setBellOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -258,10 +260,33 @@ const AdminLayout = () => {
             >
               <Menu size={22} strokeWidth={2.5} />
             </button>
-            <div className="admin-search" style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
-              <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-              <input type="text" placeholder="Поиск по системе..."
-                style={{ padding: '0.625rem 1rem 0.625rem 2.5rem', fontSize: '0.875rem', backgroundColor: '#f3f4f6', border: 'none', width: '100%' }} />
+            <div className="admin-top-tabs" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#f3f4f6', padding: '0.25rem', borderRadius: '12px' }}>
+              <button
+                onClick={() => navigate('/')}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                  padding: '0.5rem 0.95rem', border: 'none', cursor: 'pointer', borderRadius: '9px',
+                  fontSize: '0.85rem', fontWeight: 600,
+                  background: !isTracking ? 'white' : 'transparent',
+                  color: !isTracking ? 'var(--primary)' : '#6b7280',
+                  boxShadow: !isTracking ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                }}
+              >
+                <LayoutGrid size={16} /> Основное
+              </button>
+              <button
+                onClick={() => navigate('/tracking')}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                  padding: '0.5rem 0.95rem', border: 'none', cursor: 'pointer', borderRadius: '9px',
+                  fontSize: '0.85rem', fontWeight: 600,
+                  background: isTracking ? 'white' : 'transparent',
+                  color: isTracking ? 'var(--primary)' : '#6b7280',
+                  boxShadow: isTracking ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                }}
+              >
+                <Radar size={16} /> Tracking
+              </button>
             </div>
           </div>
 

@@ -24,6 +24,7 @@ import Scenarios from './pages/Scenarios';
 import ServiceOrders from './pages/ServiceOrders';
 import Profile from './pages/Profile';
 import Referral from './pages/Referral';
+import Tracking from './pages/Tracking';
 
 function App() {
   return (
@@ -62,6 +63,7 @@ function App() {
           <Route path="service-orders" element={<ServiceOrders />} />
           <Route path="scenarios" element={<Scenarios />} />
           <Route path="referral" element={<Referral />} />
+          <Route path="tracking" element={<Tracking />} />
           <Route path="health" element={<HealthServer />} />
           <Route path="notif-settings" element={<NotifSettings />} />
           <Route path="profile" element={<Profile />} />

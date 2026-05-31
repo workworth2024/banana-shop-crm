@@ -244,7 +244,7 @@ const Services = () => {
 
   return (
     <div className="orders-page products-page" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="crm-page-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '1.875rem', fontWeight: '700', color: 'var(--text-main)' }}>Услуги</h1>
           <p style={{ color: 'var(--text-dim)', marginTop: '0.25rem' }}>Управление предоставляемыми услугами</p>
@@ -259,7 +259,7 @@ const Services = () => {
 
       <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
+          <div className="crm-search-wrap" style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
             <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
             <input type="text" placeholder="Поиск услуги..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: '2.5rem' }} />
           </div>
@@ -280,7 +280,7 @@ const Services = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+        <div className="crm-wrap-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', fontSize: '0.875rem' }}>
             <Calendar size={16} />
             <span>Период создания:</span>
@@ -403,8 +403,8 @@ const Services = () => {
       </div>
 
       {showServiceModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '20px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="crm-modal" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem' }}>
+          <div className="crm-modal-card" style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '20px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontWeight: '700' }}>{editingService ? 'Редактировать' : 'Добавить'} услугу</h2>
               <button type="button" onClick={() => setShowServiceModal(false)} style={{ padding: '0.5rem', backgroundColor: '#d1d5db', color: '#111827', borderRadius: '8px', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
@@ -412,33 +412,33 @@ const Services = () => {
             <form onSubmit={handleServiceSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Название</label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="crm-lang-row" style={{ display: 'flex', gap: '0.75rem' }}>
                   <input type="text" placeholder="Русский" value={serviceForm['title.ru'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'title.ru': e.target.value})} style={{ flex: 1 }} />
                   <input type="text" placeholder="English" value={serviceForm['title.en'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'title.en': e.target.value})} style={{ flex: 1 }} />
                 </div>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Подзаголовок</label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="crm-lang-row" style={{ display: 'flex', gap: '0.75rem' }}>
                   <input type="text" placeholder="Русский" value={serviceForm['sub_title.ru'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'sub_title.ru': e.target.value})} style={{ flex: 1 }} />
                   <input type="text" placeholder="English" value={serviceForm['sub_title.en'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'sub_title.en': e.target.value})} style={{ flex: 1 }} />
                 </div>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Описание *</label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="crm-lang-row" style={{ display: 'flex', gap: '0.75rem' }}>
                   <textarea placeholder="Русский" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }} value={serviceForm['desc.ru'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'desc.ru': e.target.value})} />
                   <textarea placeholder="English" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }} value={serviceForm['desc.en'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'desc.en': e.target.value})} />
                 </div>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Дополнительное описание</label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="crm-lang-row" style={{ display: 'flex', gap: '0.75rem' }}>
                   <textarea placeholder="Русский" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }} value={serviceForm['sub_desc.ru'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'sub_desc.ru': e.target.value})} />
                   <textarea placeholder="English" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }} value={serviceForm['sub_desc.en'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'sub_desc.en': e.target.value})} />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '1rem' }}>
+              <div className="crm-lang-row" style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ flex: 1 }}><label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Цена ($)</label><input type="number" step="0.01" value={serviceForm.price || 0} onChange={(e) => setServiceForm({...serviceForm, price: e.target.value})} required /></div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Фильтр</label>
@@ -461,14 +461,14 @@ const Services = () => {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Необходимые данные от клиента</label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="crm-lang-row" style={{ display: 'flex', gap: '0.75rem' }}>
                   <textarea placeholder="Русский" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1, resize: 'vertical' }} value={serviceForm['necessary_data.ru'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'necessary_data.ru': e.target.value})} />
                   <textarea placeholder="English" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1, resize: 'vertical' }} value={serviceForm['necessary_data.en'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'necessary_data.en': e.target.value})} />
                 </div>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Срок реализации</label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="crm-lang-row" style={{ display: 'flex', gap: '0.75rem' }}>
                   <input type="text" placeholder="Русский (напр.: 3-5 рабочих дней)" value={serviceForm['implementation_period.ru'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'implementation_period.ru': e.target.value})} style={{ flex: 1 }} />
                   <input type="text" placeholder="English (e.g.: 3-5 business days)" value={serviceForm['implementation_period.en'] || ''} onChange={(e) => setServiceForm({...serviceForm, 'implementation_period.en': e.target.value})} style={{ flex: 1 }} />
                 </div>
