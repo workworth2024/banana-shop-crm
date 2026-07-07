@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, CheckCircle, XCircle, Clock, Search, Copy, U
 import toast from 'react-hot-toast';
 import { getPreorders, updatePreorderStatus, uploadPreorderFiles, deletePreorderFile } from '../api/preorders';
 import { useAuthStore } from '../stores/authStore';
+import { useAdminNotifStore } from '../stores/adminNotifStore';
 import TransferProgressOverlay from '../components/TransferProgressOverlay';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -170,6 +171,10 @@ const Preorders = () => {
   const { user } = useAuthStore();
   const canManage = user?.role === 'admin' || user?.role === 'manager';
   const navigate = useNavigate();
+
+  useEffect(() => {
+    useAdminNotifStore.getState().markCategoryRead('order_preorder');
+  }, []);
 
   useEffect(() => {
     const s = searchParams.get('search') || '';

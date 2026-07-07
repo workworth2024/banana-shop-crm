@@ -3,9 +3,11 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   Plus, Search, Edit2, Trash2, Youtube, Globe, Filter as FilterIcon, 
   ChevronLeft, ChevronRight, Package, Image as ImageIcon, X, Check, Copy,
-  Settings2, Calendar, MapPin
+  Settings2, Calendar, MapPin, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { getFilters, createFilter, updateFilter, deleteFilter, getYoutubeProducts, getGoogleAdsProducts, saveProduct, deleteProduct } from '../api/products';
+import { getTemplates } from '../api/templates';
+import { getServices } from '../api/services';
 import { useAuthStore } from '../stores/authStore';
 import countries from '../utils/countries.json';
 import ACCOUNT_TYPES from '../constants/accountTypes';
@@ -22,6 +24,15 @@ function localYMD(d) {
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
+const DetailField = ({ label, value, pre = false }) => (
+  <div style={{ background: '#fff', border: '1px solid #eef0f4', borderRadius: '10px', padding: '0.6rem 0.8rem' }}>
+    <div style={{ fontSize: '0.68rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.25rem' }}>{label}</div>
+    <div style={{ fontSize: '0.82rem', color: '#374151', whiteSpace: pre ? 'pre-wrap' : 'normal', wordBreak: 'break-word' }}>
+      {value !== undefined && value !== null && String(value).trim() !== '' ? value : '—'}
+    </div>
+  </div>
+);
+
 const Products = () => {
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get('tab') === 'google-ads' || searchParams.get('tab') === 'youtube')
@@ -30,6 +41,14 @@ const Products = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [services, setServices] = useState([]);
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [availablePayments, setAvailablePayments] = useState([]);
+  const [availableFeatures, setAvailableFeatures] = useState([]);
+  const [expandedRows, setExpandedRows] = useState(() => new Set());
+  const [formStep, setFormStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
@@ -69,8 +88,7 @@ const Products = () => {
     counts: 100,
     price: 100,
     filter: 150,
-    wholesale: 120,
-    countWholesale: 120
+    tiers: 160
   });
 
   const [copiedId, setCopiedId] = useState(null);
@@ -175,6 +193,10 @@ const Products = () => {
       setProducts(data.products);
       setTotal(data.total);
       setPages(Math.max(1, data.pages || 1));
+      if (activeTab === 'google-ads') {
+        setAvailablePayments(Array.isArray(data.availablePayments) ? data.availablePayments : []);
+        setAvailableFeatures(Array.isArray(data.availableFeatures) ? data.availableFeatures : []);
+      }
     } catch (err) {
       console.error('Fetch products error:', err);
     } finally {
@@ -185,6 +207,18 @@ const Products = () => {
   useEffect(() => {
     fetchFilters();
   }, [fetchFilters]);
+
+  useEffect(() => {
+    getTemplates()
+      .then(data => setTemplates(Array.isArray(data) ? data : []))
+      .catch(() => {});
+    const sp = new URLSearchParams();
+    sp.set('page', '1');
+    sp.set('limit', '100');
+    getServices(sp)
+      .then(data => setServices(Array.isArray(data?.services) ? data.services : (Array.isArray(data) ? data : [])))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchProducts();
@@ -248,20 +282,41 @@ const Products = () => {
         filter_id: product.filter_id,
         geos: geosArr,
         path_image: product.path_image,
-        wholesale_price: product.wholesale_price ?? '',
-        count_for_wholesale: product.count_for_wholesale ?? ''
+        price_tiers: Array.isArray(product.price_tiers)
+          ? product.price_tiers.map(t => ({ min_qty: t.min_qty, price: t.price }))
+          : [],
+        'payment.ru': product.payment?.ru || '',
+        'payment.en': product.payment?.en || '',
+        features: Array.isArray(product.features)
+          ? product.features.map(f => ({ ru: f.ru || '', en: f.en || '' }))
+          : [],
+        templateIds: Array.isArray(product.templateIds)
+          ? product.templateIds.map(t => (t && t._id) ? t._id : t)
+          : [],
+        serviceIds: Array.isArray(product.serviceIds)
+          ? product.serviceIds.map(s => (s && s._id) ? s._id : s)
+          : []
       });
       setGeoSearch('');
     } else {
       setEditingProduct(null);
       setProductForm(activeTab === 'youtube'
-        ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, filter_id: '', geos: [], wholesale_price: '', count_for_wholesale: '' }
-        : { type: '', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, filter_id: '', geos: [], wholesale_price: '', count_for_wholesale: '' }
+        ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, filter_id: '', geos: [], price_tiers: [] }
+        : { type: '', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, filter_id: '', geos: [], price_tiers: [], 'payment.ru': '', 'payment.en': '', features: [], templateIds: [], serviceIds: [] }
       );
       setGeoSearch('');
     }
     setImageFile(null);
+    setFormStep(0);
     setShowProductModal(true);
+  };
+
+  const toggleRowExpand = (id) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   };
 
   const addGeoRow = (code) => {
@@ -272,13 +327,6 @@ const Products = () => {
     });
   };
 
-  const updateGeoCounts = (code, value) => {
-    setProductForm(prev => ({
-      ...prev,
-      geos: (prev.geos || []).map(g => g.code === code ? { ...g, counts: Math.max(0, parseInt(value, 10) || 0) } : g)
-    }));
-  };
-
   const removeGeoRow = (code) => {
     setProductForm(prev => ({
       ...prev,
@@ -286,8 +334,77 @@ const Products = () => {
     }));
   };
 
+  const addFeatureRow = () => {
+    setProductForm(prev => ({
+      ...prev,
+      features: [...(prev.features || []), { ru: '', en: '' }]
+    }));
+  };
+
+  const updateFeatureRow = (idx, lang, value) => {
+    setProductForm(prev => ({
+      ...prev,
+      features: (prev.features || []).map((f, i) => i === idx ? { ...f, [lang]: value } : f)
+    }));
+  };
+
+  const removeFeatureRow = (idx) => {
+    setProductForm(prev => ({
+      ...prev,
+      features: (prev.features || []).filter((_, i) => i !== idx)
+    }));
+  };
+
+  const addTierRow = () => {
+    setProductForm(prev => {
+      const tiers = Array.isArray(prev.price_tiers) ? prev.price_tiers : [];
+      const lastQty = tiers.length ? Number(tiers[tiers.length - 1].min_qty) || 0 : 1;
+      return { ...prev, price_tiers: [...tiers, { min_qty: lastQty + 1, price: '' }] };
+    });
+  };
+
+  const updateTierRow = (idx, field, value) => {
+    setProductForm(prev => ({
+      ...prev,
+      price_tiers: (prev.price_tiers || []).map((t, i) => i === idx ? { ...t, [field]: value } : t)
+    }));
+  };
+
+  const removeTierRow = (idx) => {
+    setProductForm(prev => ({
+      ...prev,
+      price_tiers: (prev.price_tiers || []).filter((_, i) => i !== idx)
+    }));
+  };
+
+  const validatePriceTiers = (tiers, basePrice) => {
+    const base = parseFloat(basePrice) || 0;
+    let prevQty = 1;
+    let prevPrice = base;
+    for (let i = 0; i < tiers.length; i++) {
+      const qty = parseInt(tiers[i].min_qty, 10);
+      const price = parseFloat(tiers[i].price);
+      if (!Number.isFinite(qty) || !Number.isFinite(price)) {
+        return `Уровень ${i + 1}: заполните количество и цену`;
+      }
+      if (qty <= prevQty) {
+        return `Уровень ${i + 1}: количество должно быть больше, чем у уровня ${i} (${prevQty})`;
+      }
+      if (price < 0 || price >= prevPrice) {
+        return `Уровень ${i + 1}: цена должна быть меньше, чем у уровня ${i} ($${prevPrice})`;
+      }
+      prevQty = qty;
+      prevPrice = price;
+    }
+    return null;
+  };
+
   const handleProductSubmit = async (e) => {
     e.preventDefault();
+    if (formStep < formStepKeys.length - 1) {
+      setFormStep(formStep + 1);
+      return;
+    }
     if (!productForm['title.ru'] && !productForm['title.en']) {
       toast.error('Название должно быть заполнено на русском или английском языке');
       return;
@@ -307,6 +424,14 @@ const Products = () => {
     if (activeTab === 'google-ads') {
       formData.append('sub_title.ru', productForm['sub_title.ru'] || '');
       formData.append('sub_title.en', productForm['sub_title.en'] || '');
+      formData.append('payment.ru', productForm['payment.ru'] || '');
+      formData.append('payment.en', productForm['payment.en'] || '');
+      const featuresClean = (productForm.features || [])
+        .map(f => ({ ru: String(f.ru || '').trim(), en: String(f.en || '').trim() }))
+        .filter(f => f.ru || f.en);
+      formData.append('features', JSON.stringify(featuresClean));
+      formData.append('templateIds', JSON.stringify(productForm.templateIds || []));
+      formData.append('serviceIds', JSON.stringify(productForm.serviceIds || []));
     }
     
     formData.append('price', productForm.price);
@@ -318,12 +443,18 @@ const Products = () => {
       return;
     }
     formData.append('geos', JSON.stringify(geosClean));
-    if (productForm.wholesale_price !== '' && productForm.wholesale_price !== null) {
-      formData.append('wholesale_price', productForm.wholesale_price);
+
+    const tiers = productForm.price_tiers || [];
+    const tiersError = validatePriceTiers(tiers, productForm.price);
+    if (tiersError) {
+      toast.error(tiersError);
+      return;
     }
-    if (productForm.count_for_wholesale !== '' && productForm.count_for_wholesale !== null) {
-      formData.append('count_for_wholesale', productForm.count_for_wholesale);
-    }
+    const tiersClean = tiers.map(t => ({
+      min_qty: parseInt(t.min_qty, 10),
+      price: parseFloat(t.price)
+    }));
+    formData.append('price_tiers', JSON.stringify(tiersClean));
     
     const filterId = productForm.filter_id?._id || productForm.filter_id || '';
     formData.append('filter_id', filterId);
@@ -370,6 +501,19 @@ const Products = () => {
       toast.error(err.message || 'Ошибка');
     }
   };
+
+  const isGoogleAds = activeTab === 'google-ads';
+  const formStepKeys = isGoogleAds
+    ? ['basic', 'pricing', 'extra', 'geo', 'image']
+    : ['basic', 'pricing', 'geo', 'image'];
+  const formStepLabels = {
+    basic: 'Основное',
+    pricing: 'Цены и фильтр',
+    extra: 'Платёжка · особенности · шаблоны',
+    geo: 'ГЕО и наличие',
+    image: 'Изображение'
+  };
+  const currentStepKey = formStepKeys[Math.min(formStep, formStepKeys.length - 1)];
 
   return (
     <div className="orders-page products-page" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -655,6 +799,7 @@ const Products = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1200px', tableLayout: 'fixed' }}>
           <thead style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
             <tr>
+              <th style={{ width: '44px', padding: '1rem 0.5rem' }} />
               <th style={{ width: `${columnWidths.id}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 ID <Resizer onResize={(w) => handleResize('id', w)} />
               </th>
@@ -687,11 +832,8 @@ const Products = () => {
               <th style={{ width: `${columnWidths.filter}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
                 Фильтр <Resizer onResize={(w) => handleResize('filter', w)} />
               </th>
-              <th style={{ width: `${columnWidths.wholesale}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
-                Опт.цена <Resizer onResize={(w) => handleResize('wholesale', w)} />
-              </th>
-              <th style={{ width: `${columnWidths.countWholesale}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
-                Кол-во опт <Resizer onResize={(w) => handleResize('countWholesale', w)} />
+              <th style={{ width: `${columnWidths.tiers}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
+                Опт. уровни <Resizer onResize={(w) => handleResize('tiers', w)} />
               </th>
               <th style={{ width: '120px', padding: '1rem 1.5rem', textAlign: 'right', position: 'sticky', right: 0, background: '#f9fafb', zIndex: 3, boxShadow: '-2px 0 6px rgba(0,0,0,0.06)' }}>Действия</th>
             </tr>
@@ -707,8 +849,15 @@ const Products = () => {
                 : (p.geo ? [{ code: p.geo, counts: p.counts || 0 }] : []);
               const geoCodesText = productGeos.map(g => g.code).join(', ');
               const totalCounts = productGeos.reduce((s, g) => s + (Number(g.counts) || 0), 0);
+              const isExpanded = expandedRows.has(p._id);
               return (
-              <tr key={p._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+              <React.Fragment key={p._id}>
+              <tr style={{ borderBottom: isExpanded ? 'none' : '1px solid #f3f4f6', background: isExpanded ? '#fafafe' : 'transparent' }}>
+                <td style={{ padding: '1rem 0.5rem', textAlign: 'center' }}>
+                  <button type="button" onClick={() => toggleRowExpand(p._id)} title={isExpanded ? 'Свернуть' : 'Развернуть'} style={{ padding: '0.35rem', background: isExpanded ? '#eef2ff' : '#f3f4f6', color: '#4b5563', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'inline-flex' }}>
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
+                </td>
                 <ClickableCell text={p.uid || String(p._id)} cellId={p._id} style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <span>{p.uid || p._id.slice(-6)}</span>
@@ -779,11 +928,17 @@ const Products = () => {
                     <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
                   )}
                 </ClickableCell>
-                <ClickableCell text={p.wholesale_price != null ? p.wholesale_price.toString() : ''} style={{ fontWeight: '600', color: '#7c3aed' }}>
-                  {p.wholesale_price != null ? `$${p.wholesale_price}` : '—'}
-                </ClickableCell>
-                <ClickableCell text={p.count_for_wholesale != null ? p.count_for_wholesale.toString() : ''}>
-                  {p.count_for_wholesale != null ? `${p.count_for_wholesale} шт.` : '—'}
+                <ClickableCell
+                  text={(p.price_tiers || []).map(t => `${t.min_qty}+: $${t.price}`).join(', ')}
+                  style={{ fontWeight: '600', color: '#7c3aed' }}
+                >
+                  {Array.isArray(p.price_tiers) && p.price_tiers.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      {p.price_tiers.map((t, i) => (
+                        <span key={i} style={{ fontSize: '0.72rem' }}>от {t.min_qty} шт. — ${t.price}</span>
+                      ))}
+                    </div>
+                  ) : '—'}
                 </ClickableCell>
                 <td style={{ padding: '1rem 1.5rem', textAlign: 'right', position: 'sticky', right: 0, background: 'white', zIndex: 2, boxShadow: '-2px 0 6px rgba(0,0,0,0.06)' }}>
                   {canManage && (
@@ -801,6 +956,54 @@ const Products = () => {
                   )}
                 </td>
               </tr>
+              {isExpanded && (
+                <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#fafafe' }}>
+                  <td colSpan={20} style={{ padding: '0 1.5rem 1.5rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                      <DetailField label="Название (RU)" value={p.title?.ru} />
+                      <DetailField label="Название (EN)" value={p.title?.en} />
+                      {activeTab === 'google-ads' && <DetailField label="Подзаголовок (RU)" value={p.sub_title?.ru} />}
+                      {activeTab === 'google-ads' && <DetailField label="Подзаголовок (EN)" value={p.sub_title?.en} />}
+                      <DetailField label="Описание (RU)" value={p.desc?.ru} pre />
+                      <DetailField label="Описание (EN)" value={p.desc?.en} pre />
+                      {activeTab === 'google-ads' && <DetailField label="Платёжка (RU)" value={p.payment?.ru} />}
+                      {activeTab === 'google-ads' && <DetailField label="Платёжка (EN)" value={p.payment?.en} />}
+                      {activeTab === 'google-ads' && (
+                        <DetailField label="Особенности" value={(p.features || []).map(f => f.ru || f.en).filter(Boolean).join(', ')} />
+                      )}
+                      {activeTab === 'google-ads' && (
+                        <DetailField label="Шаблоны" value={(p.templateIds || []).map(t => {
+                          if (t && (t.title?.ru || t.title?.en)) return t.title?.ru || t.title?.en;
+                          const id = (t && t._id) ? t._id : t;
+                          const found = templates.find(x => x._id === id);
+                          return found ? (found.title?.ru || found.title?.en || found.uid) : null;
+                        }).filter(Boolean).join(', ')} />
+                      )}
+                      {activeTab === 'google-ads' && (
+                        <DetailField label="Услуги" value={(p.serviceIds || []).map(s => {
+                          if (s && (s.title?.ru || s.title?.en)) return s.title?.ru || s.title?.en;
+                          const id = (s && s._id) ? s._id : s;
+                          const found = services.find(x => x._id === id);
+                          return found ? (found.title?.ru || found.title?.en || found.uid) : null;
+                        }).filter(Boolean).join(', ')} />
+                      )}
+                      <DetailField label="ГЕО (детально)" value={productGeos.map(g => `${g.code}: ${g.counts}`).join(', ')} />
+                      <DetailField label="Цена" value={`$${p.price}`} />
+                      <DetailField
+                        label="Опт. уровни"
+                        value={
+                          Array.isArray(p.price_tiers) && p.price_tiers.length > 0
+                            ? p.price_tiers.map((t, i) => `Ур.${i + 1}: от ${t.min_qty} шт. — $${t.price}`).join('; ')
+                            : '—'
+                        }
+                      />
+                      <DetailField label="Фильтр" value={p.filter_id ? (p.filter_id.name?.ru || p.filter_id.name?.en) : '—'} />
+                      <DetailField label="Ссылка" value={p.link} />
+                    </div>
+                  </td>
+                </tr>
+              )}
+              </React.Fragment>
               );
             })}
           </tbody>
@@ -856,6 +1059,32 @@ const Products = () => {
               <button type="button" onClick={() => setShowProductModal(false)} style={{ padding: '0.5rem', backgroundColor: '#d1d5db', color: '#111827', borderRadius: '8px', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
             </div>
             <form onSubmit={handleProductSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+                {formStepKeys.map((key, idx) => {
+                  const active = idx === formStep;
+                  const done = idx < formStep;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setFormStep(idx)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        padding: '0.4rem 0.7rem', borderRadius: '999px', border: 'none', cursor: 'pointer',
+                        fontSize: '0.78rem', fontWeight: 600,
+                        background: active ? 'var(--primary)' : done ? '#ecfdf5' : '#f3f4f6',
+                        color: active ? '#fff' : done ? '#059669' : '#6b7280'
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', borderRadius: '50%', background: active ? 'rgba(255,255,255,0.25)' : done ? '#059669' : '#d1d5db', color: active ? '#fff' : '#fff', fontSize: '0.7rem' }}>
+                        {done ? <Check size={11} /> : idx + 1}
+                      </span>
+                      {formStepLabels[key]}
+                    </button>
+                  );
+                })}
+              </div>
+              {currentStepKey === 'basic' && (
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Название *</label>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -863,6 +1092,8 @@ const Products = () => {
                   <input type="text" placeholder="English" value={productForm['title.en'] || ''} onChange={(e) => setProductForm({...productForm, 'title.en': e.target.value})} style={{ flex: 1 }} />
                 </div>
               </div>
+              )}
+              {currentStepKey === 'basic' && (
               <div style={{ width: '150px' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Тип</label>
                 <select value={productForm.type || ''} onChange={(e) => setProductForm({...productForm, type: e.target.value})} required>
@@ -879,7 +1110,8 @@ const Products = () => {
                   )}
                 </select>
               </div>
-              {activeTab === 'google-ads' && (
+              )}
+              {activeTab === 'google-ads' && currentStepKey === 'basic' && (
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Подзаголовок</label>
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -888,6 +1120,170 @@ const Products = () => {
                   </div>
                 </div>
               )}
+              {activeTab === 'google-ads' && currentStepKey === 'extra' && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Платёжка</label>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <input type="text" list="ga-payments-ru" placeholder="Русский (напр. IBAN)" value={productForm['payment.ru'] || ''} onChange={(e) => setProductForm({...productForm, 'payment.ru': e.target.value})} style={{ flex: 1 }} />
+                    <input type="text" list="ga-payments-en" placeholder="English (e.g. IBAN)" value={productForm['payment.en'] || ''} onChange={(e) => setProductForm({...productForm, 'payment.en': e.target.value})} style={{ flex: 1 }} />
+                  </div>
+                  <datalist id="ga-payments-ru">
+                    {[...new Set(availablePayments.map(p => p.ru).filter(Boolean))].map((v, i) => <option key={i} value={v} />)}
+                  </datalist>
+                  <datalist id="ga-payments-en">
+                    {[...new Set(availablePayments.map(p => p.en).filter(Boolean))].map((v, i) => <option key={i} value={v} />)}
+                  </datalist>
+                </div>
+              )}
+              {activeTab === 'google-ads' && currentStepKey === 'extra' && (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <label style={{ fontSize: '0.875rem', fontWeight: '500' }}>Особенности</label>
+                    <button type="button" onClick={addFeatureRow} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.7rem', background: '#ecfdf5', color: '#059669', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
+                      <Plus size={13} /> Добавить
+                    </button>
+                  </div>
+                  {(productForm.features || []).length === 0 && (
+                    <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>Нет особенностей. Напр.: «Верифицирован», «Со спендом».</p>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    {(productForm.features || []).map((f, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <input type="text" list="ga-features-ru" placeholder="Русский" value={f.ru || ''} onChange={(e) => updateFeatureRow(idx, 'ru', e.target.value)} style={{ flex: 1, marginBottom: 0 }} />
+                        <input type="text" list="ga-features-en" placeholder="English" value={f.en || ''} onChange={(e) => updateFeatureRow(idx, 'en', e.target.value)} style={{ flex: 1, marginBottom: 0 }} />
+                        <button type="button" onClick={() => removeFeatureRow(idx)} style={{ padding: '0.35rem 0.55rem', background: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer' }} title="Удалить">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <datalist id="ga-features-ru">
+                    {[...new Set(availableFeatures.map(f => f.ru).filter(Boolean))].map((v, i) => <option key={i} value={v} />)}
+                  </datalist>
+                  <datalist id="ga-features-en">
+                    {[...new Set(availableFeatures.map(f => f.en).filter(Boolean))].map((v, i) => <option key={i} value={v} />)}
+                  </datalist>
+                </div>
+              )}
+              {activeTab === 'google-ads' && currentStepKey === 'extra' && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Шаблоны (правила / что входит)</label>
+                  <input
+                    type="text"
+                    placeholder="Поиск шаблонов..."
+                    value={templateSearch}
+                    onChange={(e) => setTemplateSearch(e.target.value)}
+                    style={{ width: '100%', marginBottom: '0.5rem' }}
+                  />
+                  {(productForm.templateIds || []).length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                      {(productForm.templateIds || []).map(id => {
+                        const tpl = templates.find(t => t._id === id);
+                        if (!tpl) return null;
+                        const label = tpl.title?.ru || tpl.title?.en || tpl.uid;
+                        return (
+                          <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem 0.6rem', background: '#ecfdf5', color: '#059669', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 600 }}>
+                            {label}
+                            <button type="button" onClick={() => setProductForm(prev => ({ ...prev, templateIds: (prev.templateIds || []).filter(t => t !== id) }))} style={{ background: 'none', border: 'none', color: '#059669', cursor: 'pointer', padding: 0, lineHeight: 1 }}>
+                              <X size={13} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    {templates
+                      .filter(t => {
+                        const q = templateSearch.trim().toLowerCase();
+                        if (!q) return true;
+                        return (t.title?.ru || '').toLowerCase().includes(q)
+                          || (t.title?.en || '').toLowerCase().includes(q)
+                          || (t.content?.ru || '').toLowerCase().includes(q)
+                          || (t.content?.en || '').toLowerCase().includes(q);
+                      })
+                      .map(t => {
+                        const checked = (productForm.templateIds || []).includes(t._id);
+                        const label = t.title?.ru || t.title?.en || t.uid;
+                        return (
+                          <label key={t._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.6rem', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', fontSize: '0.82rem' }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => setProductForm(prev => {
+                                const cur = prev.templateIds || [];
+                                return { ...prev, templateIds: checked ? cur.filter(id => id !== t._id) : [...cur, t._id] };
+                              })}
+                            />
+                            <span>{label}</span>
+                          </label>
+                        );
+                      })}
+                    {templates.length === 0 && (
+                      <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, padding: '0.6rem' }}>Нет шаблонов. Создайте их во вкладке «Шаблоны».</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              {activeTab === 'google-ads' && currentStepKey === 'extra' && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Услуги (доп. предложения)</label>
+                  <input
+                    type="text"
+                    placeholder="Поиск услуг..."
+                    value={serviceSearch}
+                    onChange={(e) => setServiceSearch(e.target.value)}
+                    style={{ width: '100%', marginBottom: '0.5rem' }}
+                  />
+                  {(productForm.serviceIds || []).length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                      {(productForm.serviceIds || []).map(id => {
+                        const svc = services.find(s => s._id === id);
+                        if (!svc) return null;
+                        const label = svc.title?.ru || svc.title?.en || svc.uid;
+                        return (
+                          <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem 0.6rem', background: '#eff6ff', color: '#2563eb', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 600 }}>
+                            {label}
+                            <button type="button" onClick={() => setProductForm(prev => ({ ...prev, serviceIds: (prev.serviceIds || []).filter(s => s !== id) }))} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', padding: 0, lineHeight: 1 }}>
+                              <X size={13} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    {services
+                      .filter(s => {
+                        const q = serviceSearch.trim().toLowerCase();
+                        if (!q) return true;
+                        return (s.title?.ru || '').toLowerCase().includes(q)
+                          || (s.title?.en || '').toLowerCase().includes(q);
+                      })
+                      .map(s => {
+                        const checked = (productForm.serviceIds || []).includes(s._id);
+                        const label = s.title?.ru || s.title?.en || s.uid;
+                        return (
+                          <label key={s._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 0.6rem', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', fontSize: '0.82rem' }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => setProductForm(prev => {
+                                const cur = prev.serviceIds || [];
+                                return { ...prev, serviceIds: checked ? cur.filter(id => id !== s._id) : [...cur, s._id] };
+                              })}
+                            />
+                            <span>{label}{typeof s.price !== 'undefined' ? ` — $${s.price}` : ''}</span>
+                          </label>
+                        );
+                      })}
+                    {services.length === 0 && (
+                      <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, padding: '0.6rem' }}>Нет услуг. Создайте их во вкладке «Услуги».</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              {currentStepKey === 'basic' && (
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Описание *</label>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -895,8 +1291,9 @@ const Products = () => {
                   <textarea placeholder="English" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #d1d5db', minHeight: '80px', fontFamily: 'inherit', flex: 1 }} value={productForm['desc.en'] || ''} onChange={(e) => setProductForm({...productForm, 'desc.en': e.target.value})} />
                 </div>
               </div>
+              )}
 
-              
+              {currentStepKey === 'geo' && (
               <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: '700', color: 'var(--primary)' }}>ГЕО товара (несколько)</label>
 
@@ -910,14 +1307,7 @@ const Products = () => {
                           <div style={{ flex: 1, fontSize: '0.82rem' }}>
                             <strong>{g.code}</strong> <span style={{ color: '#6b7280' }}>{country?.ruName || ''}</span>
                           </div>
-                          <label style={{ fontSize: '0.72rem', color: '#6b7280' }}>Кол-во</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={g.counts}
-                            onChange={(e) => updateGeoCounts(g.code, e.target.value)}
-                            style={{ width: '90px', padding: '0.35rem 0.5rem', marginBottom: 0 }}
-                          />
+                          <span style={{ fontSize: '0.72rem', color: '#6b7280' }} title="Количество определяется загруженными товарами">В наличии: <strong style={{ color: 'var(--primary)' }}>{g.counts}</strong></span>
                           <button type="button" onClick={() => removeGeoRow(g.code)} style={{ padding: '0.35rem 0.55rem', background: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer' }} title="Удалить">
                             <Trash2 size={13} />
                           </button>
@@ -975,7 +1365,10 @@ const Products = () => {
                   ))}
                 </div>
               </div>
+              )}
 
+              {currentStepKey === 'pricing' && (
+              <>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <div style={{ flex: 1 }}><label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Цена ($)</label><input type="number" step="0.01" value={productForm.price || 0} onChange={(e) => setProductForm({...productForm, price: e.target.value})} required /></div>
                 <div style={{ flex: 1 }}>
@@ -986,25 +1379,74 @@ const Products = () => {
                   </select>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Опт. цена ($)</label>
-                  <input type="number" step="0.01" min="0" placeholder="—" value={productForm.wholesale_price ?? ''} onChange={(e) => setProductForm({...productForm, wholesale_price: e.target.value})} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Кол-во для опта</label>
-                  <input type="number" min="0" placeholder="—" value={productForm.count_for_wholesale ?? ''} onChange={(e) => setProductForm({...productForm, count_for_wholesale: e.target.value})} />
+              <div style={{ marginTop: '0.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Опт. уровни цен</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', padding: '0.6rem 0.8rem', background: '#f9fafb', border: '1px solid #eef0f4', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6b7280', width: '90px', flexShrink: 0 }}>Уровень 0</span>
+                    <span style={{ fontSize: '0.8125rem', color: '#9ca3af', width: '110px', flexShrink: 0 }}>от 1 шт.</span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-main)' }}>${productForm.price || 0} (базовая цена)</span>
+                  </div>
+                  {(productForm.price_tiers || []).map((t, idx) => {
+                    const rowError = validatePriceTiers((productForm.price_tiers || []).slice(0, idx + 1), productForm.price);
+                    return (
+                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--primary)', width: '90px', flexShrink: 0 }}>Уровень {idx + 1}</span>
+                          <input
+                            type="number"
+                            min="2"
+                            step="1"
+                            placeholder="Кол-во от"
+                            value={t.min_qty}
+                            onChange={(e) => updateTierRow(idx, 'min_qty', e.target.value)}
+                            style={{ width: '110px', flexShrink: 0 }}
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Цена ($)"
+                            value={t.price}
+                            onChange={(e) => updateTierRow(idx, 'price', e.target.value)}
+                            style={{ flex: 1 }}
+                          />
+                          <button type="button" onClick={() => removeTierRow(idx)} style={{ padding: '0.5rem', backgroundColor: '#fef2f2', color: '#ef4444', borderRadius: '8px', border: 'none', cursor: 'pointer', flexShrink: 0 }} title="Удалить уровень">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                        {rowError && (
+                          <span style={{ fontSize: '0.72rem', color: '#ef4444', marginLeft: '102px' }}>{rowError}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <button type="button" onClick={addTierRow} style={{ alignSelf: 'flex-start', padding: '0.5rem 0.9rem', backgroundColor: '#eef2ff', color: '#4338ca', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Plus size={14} /> Добавить уровень
+                  </button>
                 </div>
               </div>
+              </>
+              )}
+              {currentStepKey === 'image' && (
               <ImageUploadInput
                 file={imageFile}
                 onChange={setImageFile}
                 currentImageUrl={editingProduct?.path_image}
                 label="Изображение"
               />
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setShowProductModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Отмена</button>
-                <button type="submit" style={{ flex: 1 }}>Сохранить</button>
+              )}
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem' }}>
+                {formStep > 0 ? (
+                  <button type="button" onClick={() => setFormStep(formStep - 1)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>← Назад</button>
+                ) : (
+                  <button type="button" onClick={() => setShowProductModal(false)} style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563' }}>Отмена</button>
+                )}
+                {formStep < formStepKeys.length - 1 ? (
+                  <button type="button" onClick={() => setFormStep(formStep + 1)} style={{ flex: 1 }}>Далее →</button>
+                ) : (
+                  <button type="submit" style={{ flex: 1 }}>Сохранить</button>
+                )}
               </div>
             </form>
           </div>

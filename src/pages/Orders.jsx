@@ -7,6 +7,7 @@ import {
   processReplacement, processRefund, getReplacementsHistory
 } from '../api/orders';
 import { useConfirm } from '../components/ConfirmDialog';
+import { useAdminNotifStore } from '../stores/adminNotifStore';
 import toast from 'react-hot-toast';
 
 const STATUS_COLORS = {
@@ -688,6 +689,10 @@ const Orders = () => {
   const activeTab = location.pathname.endsWith('/replacements') ? 'replacements'
     : location.pathname.endsWith('/services') ? 'services'
     : 'orders';
+
+  useEffect(() => {
+    useAdminNotifStore.getState().markCategoryRead(activeTab === 'replacements' ? 'replacement' : 'order');
+  }, [activeTab]);
 
   const tabs = [
     { key: 'orders', label: 'История заказов', path: '/orders' },

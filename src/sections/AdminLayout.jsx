@@ -7,6 +7,7 @@ import api from '../api/client';
 import { io as socketIO } from 'socket.io-client';
 import { useSupportSocket } from '../hooks/useSupportSocket';
 import { useSupportStore } from '../stores/supportStore';
+import { useAdminNotifStore } from '../stores/adminNotifStore';
 
 const SOCKET_URL = (import.meta.env.VITE_API_URL || 'https://banana-traff-shop.com').replace('/api/v3', '');
 
@@ -208,6 +209,7 @@ const AdminLayout = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
     fetchCount();
+    useAdminNotifStore.getState().fetchCategoryCounts();
     const socket = socketIO(`${SOCKET_URL}/admin`, {
       withCredentials: true,
       transports: ['polling']
@@ -215,6 +217,9 @@ const AdminLayout = () => {
     socket.on('admin_notification', (data) => {
       if (data.unreadCount !== undefined) setUnreadCount(data.unreadCount);
       else setUnreadCount(prev => prev + 1);
+      if (data.category && data.categoryUnreadCount !== undefined) {
+        useAdminNotifStore.getState().setCategoryCount(data.category, data.categoryUnreadCount);
+      }
     });
     return () => socket.disconnect();
   }, [isAuthenticated, fetchCount]);

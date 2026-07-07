@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { Search, ChevronLeft, ChevronRight, Upload, X, ChevronDown, ChevronUp, Copy, Download, Receipt } from 'lucide-react';
 import { getServiceOrders, updateServiceOrderStatus, uploadResultFiles, deleteResultFile, downloadCustomerFile } from '../api/serviceOrders';
 import { useAuthStore } from '../stores/authStore';
+import { useAdminNotifStore } from '../stores/adminNotifStore';
 import toast from 'react-hot-toast';
 import TransferProgressOverlay from '../components/TransferProgressOverlay';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -217,6 +218,10 @@ const ServiceOrders = () => {
   const { user } = useAuthStore();
   const canManage = user?.role === 'admin' || user?.role === 'manager';
   const navigate = useNavigate();
+
+  useEffect(() => {
+    useAdminNotifStore.getState().markCategoryRead('order_service');
+  }, []);
 
   useEffect(() => {
     const s = searchParams.get('search') || '';

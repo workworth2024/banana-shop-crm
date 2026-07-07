@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useSupportStore } from '../stores/supportStore';
+import { useAdminNotifStore } from '../stores/adminNotifStore';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -132,7 +133,7 @@ const SidebarItemDisabled = ({ icon: Icon, label }) => (
   </div>
 );
 
-const SidebarGroupItem = ({ icon: Icon, label, children }) => {
+const SidebarGroupItem = ({ icon: Icon, label, badge, children }) => {
   const location = useLocation();
   const childPaths = React.Children.map(children, (c) => c?.props?.to) || [];
   const isChildActive = childPaths.some((p) => p && location.pathname.startsWith(p));
@@ -160,6 +161,16 @@ const SidebarGroupItem = ({ icon: Icon, label, children }) => {
       >
         <Icon size={20} style={{ color: isChildActive ? 'var(--primary)' : 'var(--sidebar-text)', transition: 'color 0.2s', flexShrink: 0 }} />
         <span style={{ flex: 1 }}>{label}</span>
+        {badge > 0 && (
+          <span style={{
+            background: '#ef4444', color: '#fff',
+            fontSize: '0.65rem', fontWeight: 700,
+            minWidth: 18, height: 18, padding: '0 5px',
+            borderRadius: 9, display: 'inline-flex',
+            alignItems: 'center', justifyContent: 'center',
+            lineHeight: 1
+          }}>{badge > 99 ? '99+' : badge}</span>
+        )}
         {open
           ? <ChevronDown size={14} style={{ opacity: 0.5 }} />
           : <ChevronRight size={14} style={{ opacity: 0.5 }} />
@@ -231,6 +242,12 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
   const supportUnread = useSupportStore((s) => s.unreadActive);
+  const categoryCounts = useAdminNotifStore((s) => s.categoryCounts);
+  const ordersUnread = categoryCounts.order || 0;
+  const replacementsUnread = categoryCounts.replacement || 0;
+  const preordersUnread = categoryCounts.order_preorder || 0;
+  const serviceOrdersUnread = categoryCounts.order_service || 0;
+  const purchasesUnread = ordersUnread + replacementsUnread + preordersUnread + serviceOrdersUnread;
   const location = useLocation();
 
   React.useEffect(() => {
@@ -279,11 +296,11 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         <SidebarItem to="/clients" icon={UserCheck} label="Клиенты" />
 
         <SectionLabel label="Продажи" />
-        <SidebarGroupItem icon={ShoppingCart} label="История покупок">
-          <SidebarSubItem to="/orders" icon={List} label="История заказов" end />
-          <SidebarSubItem to="/orders/replacements" icon={RefreshCw} label="История замен" />
-          <SidebarSubItem to="/preorders" icon={ClipboardList} label="Предзаказы" />
-          <SidebarSubItem to="/service-orders" icon={FileText} label="История услуг" />
+        <SidebarGroupItem icon={ShoppingCart} label="История покупок" badge={purchasesUnread}>
+          <SidebarSubItem to="/orders" icon={List} label="История заказов" end badge={ordersUnread} />
+          <SidebarSubItem to="/orders/replacements" icon={RefreshCw} label="История замен" badge={replacementsUnread} />
+          <SidebarSubItem to="/preorders" icon={ClipboardList} label="Предзаказы" badge={preordersUnread} />
+          <SidebarSubItem to="/service-orders" icon={FileText} label="История услуг" badge={serviceOrdersUnread} />
         </SidebarGroupItem>
 
         <SectionLabel label="Платежи" />
@@ -296,11 +313,12 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         <SidebarItem to="/manuals" icon={BookOpen} label="Мануалы" />
         <SidebarItem to="/services" icon={Briefcase} label="Услуги" />
         <SidebarItem to="/scenarios" icon={Layers} label="Сценарии" />
+        <SidebarItem to="/templates" icon={FileText} label="Шаблоны" />
         <SidebarItemDisabled icon={Key} label="Продажа аккаунтов" />
         <SidebarItem to="/reviews" icon={Star} label="Отзывы" />
 
         <SectionLabel label="Поддержка" />
-        <SidebarGroupItem icon={LifeBuoy} label="Поддержка">
+        <SidebarGroupItem icon={LifeBuoy} label="Поддержка" badge={supportUnread}>
           <SidebarSubItem to="/support" icon={LifeBuoy} label="Тикеты" badge={supportUnread} />
           <SidebarSubItem to="/contact-forms" icon={MessageSquare} label="Формы связи" />
         </SidebarGroupItem>

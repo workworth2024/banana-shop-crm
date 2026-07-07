@@ -11,6 +11,7 @@ import Purchases from './pages/Purchases';
 import Products from './pages/Products';
 import Manuals from './pages/Manuals';
 import Services from './pages/Services';
+import Templates from './pages/Templates';
 import AccountSales from './pages/AccountSales';
 import Support from './pages/Support';
 import Reviews from './pages/Reviews';
@@ -55,6 +56,7 @@ function App() {
           <Route path="products" element={<Products />} />
           <Route path="manuals" element={<Manuals />} />
           <Route path="services" element={<Services />} />
+          <Route path="templates" element={<Templates />} />
           <Route path="account-sales" element={<AccountSales />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="support" element={<Support />} />
