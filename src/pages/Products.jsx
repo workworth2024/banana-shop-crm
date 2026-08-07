@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { 
   Plus, Search, Edit2, Trash2, Youtube, Globe, Filter as FilterIcon, 
   ChevronLeft, ChevronRight, Package, Image as ImageIcon, X, Check, Copy,
-  Settings2, Calendar, MapPin, ChevronDown, ChevronUp
+  Settings2, Calendar, MapPin, ChevronDown, ChevronUp, ArrowDownUp
 } from 'lucide-react';
 import { getFilters, createFilter, updateFilter, deleteFilter, getYoutubeProducts, getGoogleAdsProducts, saveProduct, deleteProduct } from '../api/products';
 import { getTemplates } from '../api/templates';
@@ -12,8 +12,9 @@ import { useAuthStore } from '../stores/authStore';
 import countries from '../utils/countries.json';
 import ACCOUNT_TYPES from '../constants/accountTypes';
 import { useConfirm } from '../components/ConfirmDialog';
-import { ImageUploadInput } from '../components/FileUploadInput';
+import { ImageUploadInput, MultiImageUploadInput } from '../components/FileUploadInput';
 import DigitalInventoryModal from '../components/DigitalInventoryModal';
+import ProductPositionsModal from '../components/ProductPositionsModal';
 import toast from 'react-hot-toast';
 import { resolveMediaUrl } from '../utils/mediaUrl';
 
@@ -64,6 +65,7 @@ const Products = () => {
   
   const [showProductModal, setShowProductModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showPositionsModal, setShowPositionsModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingFilter, setEditingFilter] = useState(null);
   const [inventoryProduct, setInventoryProduct] = useState(null);
@@ -75,12 +77,13 @@ const Products = () => {
   const [productForm, setProductForm] = useState({});
   const [filterForm, setFilterForm] = useState({ 'name.ru': '', 'name.en': '', color: '#008b8b' });
   const [imageFile, setImageFile] = useState(null);
+  const [productImages, setProductImages] = useState([]);
   const [geoSearch, setGeoSearch] = useState('');
   const { confirm, ConfirmNode } = useConfirm();
   const [columnWidths, setColumnWidths] = useState({
     id: 80,
-    type: 100,
-    geo: 100,
+    type: 150,
+    geo: 220,
     image: 80,
     title: 200,
     subTitle: 150,
@@ -298,8 +301,13 @@ const Products = () => {
           : []
       });
       setGeoSearch('');
+      const existingImages = Array.isArray(product.path_images) && product.path_images.length
+        ? product.path_images
+        : (product.path_image ? [product.path_image] : []);
+      setProductImages(existingImages.map(url => ({ id: `existing-${url}`, isNew: false, url })));
     } else {
       setEditingProduct(null);
+      setProductImages([]);
       setProductForm(activeTab === 'youtube'
         ? { type: 'item', 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, filter_id: '', geos: [], price_tiers: [] }
         : { type: '', 'title.ru': '', 'title.en': '', 'sub_title.ru': '', 'sub_title.en': '', 'desc.ru': '', 'desc.en': '', price: 0, filter_id: '', geos: [], price_tiers: [], 'payment.ru': '', 'payment.en': '', features: [], templateIds: [], serviceIds: [] }
@@ -459,7 +467,12 @@ const Products = () => {
     const filterId = productForm.filter_id?._id || productForm.filter_id || '';
     formData.append('filter_id', filterId);
 
-    if (imageFile) {
+    if (activeTab === 'google-ads') {
+      const newFiles = productImages.filter(i => i.isNew).map(i => i.file);
+      const order = productImages.map(i => i.isNew ? `__new__:${newFiles.indexOf(i.file)}` : i.url);
+      newFiles.forEach(f => formData.append('images', f));
+      formData.append('imagesOrder', JSON.stringify(order));
+    } else if (imageFile) {
       formData.append('image', imageFile);
     }
 
@@ -524,6 +537,14 @@ const Products = () => {
         </div>
         {canManage && (
           <div style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              onClick={() => setShowPositionsModal(true)}
+              title="Настроить порядок товаров на витрине"
+              style={{ backgroundColor: '#f3f4f6', color: '#4b5563', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <ArrowDownUp size={18} />
+              Позиции
+            </button>
             <button 
               onClick={() => { setEditingFilter(null); setFilterForm({ 'name.ru': '', 'name.en': '', color: '#008b8b' }); setShowFilterModal(true); }}
               style={{ backgroundColor: '#f3f4f6', color: '#4b5563', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -869,12 +890,17 @@ const Products = () => {
                 </ClickableCell>
                 <ClickableCell text={p.type}>
                   <span style={{ 
+                    display: 'inline-block',
+                    maxWidth: '100%',
                     padding: '0.25rem 0.6rem', 
                     borderRadius: '6px', 
                     backgroundColor: '#f3f4f6', 
                     color: '#4b5563',
                     fontWeight: '600',
-                    textTransform: 'capitalize'
+                    textTransform: 'capitalize',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}>
                     {p.type?.replace('-', ' ')}
                   </span>
@@ -886,7 +912,7 @@ const Products = () => {
                       <span style={{ fontSize: '0.8125rem', color: '#9ca3af' }}>—</span>
                     ) : (
                       productGeos.map(g => (
-                        <span key={g.code} title={`${g.code}: ${g.counts} шт.`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.15rem 0.5rem', fontSize: '0.72rem', fontWeight: '700', background: '#eef2ff', color: '#4338ca', borderRadius: '6px' }}>
+                        <span key={g.code} title={`${g.code}: ${g.counts} шт.`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.15rem 0.5rem', fontSize: '0.72rem', fontWeight: '700', background: '#eef2ff', color: '#4338ca', borderRadius: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                           {g.code} <span style={{ color: '#6366f1', fontWeight: '600' }}>· {g.counts}</span>
                         </span>
                       ))
@@ -1429,12 +1455,20 @@ const Products = () => {
               </>
               )}
               {currentStepKey === 'image' && (
-              <ImageUploadInput
-                file={imageFile}
-                onChange={setImageFile}
-                currentImageUrl={editingProduct?.path_image}
-                label="Изображение"
-              />
+                activeTab === 'google-ads' ? (
+                  <MultiImageUploadInput
+                    images={productImages}
+                    onChange={setProductImages}
+                    label="Фото товара"
+                  />
+                ) : (
+                  <ImageUploadInput
+                    file={imageFile}
+                    onChange={setImageFile}
+                    currentImageUrl={editingProduct?.path_image}
+                    label="Изображение"
+                  />
+                )
               )}
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem' }}>
                 {formStep > 0 ? (
@@ -1454,6 +1488,15 @@ const Products = () => {
       )}
 
       {ConfirmNode}
+
+      {/* Positions Constructor Modal */}
+      {showPositionsModal && (
+        <ProductPositionsModal
+          tab={activeTab}
+          onClose={() => setShowPositionsModal(false)}
+          onSaved={fetchProducts}
+        />
+      )}
 
       {/* Digital Inventory Modal */}
       {inventoryProduct && (

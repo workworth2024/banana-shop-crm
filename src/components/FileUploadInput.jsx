@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { Upload, X, Image as ImageIcon, FileText } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Upload, X, Image as ImageIcon, FileText, Star } from 'lucide-react'
 import { resolveMediaUrl } from '../utils/mediaUrl'
 
 export function ImageUploadInput({ file, onChange, currentImageUrl, label = 'Изображение' }) {
@@ -118,6 +118,137 @@ export function FileUploadInput({ file, onChange, currentFileUrl, uploadProgress
       )}
 
       <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={(e) => onChange(e.target.files[0] || null)} />
+    </div>
+  )
+}
+
+let multiImageIdSeq = 0
+
+export function MultiImageUploadInput({ images, onChange, label = 'Фото товара', max = 8 }) {
+  const fileRef = useRef()
+  const dragIndexRef = useRef(null)
+  const [dragOverIndex, setDragOverIndex] = useState(null)
+
+  const items = images || []
+
+  const displayUrl = (item) => item.isNew ? item.previewUrl : resolveMediaUrl(item.url)
+
+  const addFiles = (fileList) => {
+    const files = Array.from(fileList || []).slice(0, Math.max(0, max - items.length))
+    if (!files.length) return
+    const newItems = files.map(file => ({
+      id: `new-${Date.now()}-${multiImageIdSeq++}`,
+      isNew: true,
+      file,
+      previewUrl: URL.createObjectURL(file)
+    }))
+    onChange([...items, ...newItems])
+  }
+
+  const removeAt = (idx) => {
+    const next = items.slice()
+    next.splice(idx, 1)
+    onChange(next)
+  }
+
+  const makeCover = (idx) => {
+    if (idx === 0) return
+    const next = items.slice()
+    const [moved] = next.splice(idx, 1)
+    next.unshift(moved)
+    onChange(next)
+  }
+
+  const handleDrop = (idx) => {
+    const from = dragIndexRef.current
+    dragIndexRef.current = null
+    setDragOverIndex(null)
+    if (from === null || from === idx) return
+    const next = items.slice()
+    const [moved] = next.splice(from, 1)
+    next.splice(idx, 0, moved)
+    onChange(next)
+  }
+
+  return (
+    <div>
+      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>{label}</label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+        {items.map((item, idx) => (
+          <div
+            key={item.id}
+            draggable
+            onDragStart={() => { dragIndexRef.current = idx }}
+            onDragOver={(e) => { e.preventDefault(); setDragOverIndex(idx) }}
+            onDragLeave={() => setDragOverIndex(prev => prev === idx ? null : prev)}
+            onDrop={() => handleDrop(idx)}
+            style={{
+              position: 'relative', width: '110px', height: '110px', borderRadius: '12px',
+              border: dragOverIndex === idx ? '2px solid #6366f1' : (idx === 0 ? '2px solid #10b981' : '1.5px solid #d1d5db'),
+              overflow: 'hidden', cursor: 'grab', backgroundColor: '#f9fafb', flexShrink: 0
+            }}
+          >
+            <img src={displayUrl(item)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {idx === 0 && (
+              <span style={{
+                position: 'absolute', top: '4px', left: '4px', padding: '2px 6px', borderRadius: '6px',
+                backgroundColor: '#10b981', color: 'white', fontSize: '0.65rem', fontWeight: '700'
+              }}>
+                Обложка
+              </span>
+            )}
+            {idx !== 0 && (
+              <button
+                type="button"
+                title="Сделать обложкой"
+                onClick={() => makeCover(idx)}
+                style={{
+                  position: 'absolute', bottom: '4px', left: '4px', padding: '4px', backgroundColor: 'rgba(255,255,255,0.9)',
+                  color: '#f59e0b', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center'
+                }}
+              >
+                <Star size={13} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => removeAt(idx)}
+              style={{
+                position: 'absolute', top: '4px', right: '4px', padding: '4px', backgroundColor: '#fef2f2',
+                color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center'
+              }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        ))}
+        {items.length < max && (
+          <div
+            onClick={() => fileRef.current.click()}
+            style={{
+              width: '110px', height: '110px', borderRadius: '12px', border: '2px dashed #d1d5db',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: '0.35rem', cursor: 'pointer', color: '#6b7280', backgroundColor: 'white', flexShrink: 0
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#6366f1'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
+          >
+            <Upload size={18} />
+            <span style={{ fontSize: '0.7rem', textAlign: 'center' }}>Добавить фото</span>
+          </div>
+        )}
+      </div>
+      <p style={{ color: '#9ca3af', margin: '0.5rem 0 0', fontSize: '0.78rem' }}>
+        Перетащите фото, чтобы изменить порядок. Первое фото (обложка) отображается в каталоге. До {max} фото, PNG/JPG/WEBP.
+      </p>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={(e) => { addFiles(e.target.files); e.target.value = '' }}
+      />
     </div>
   )
 }

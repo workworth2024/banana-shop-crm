@@ -51,6 +51,20 @@ function CopyBtn({ value }) {
   );
 }
 
+function ClientLink({ customer, name }) {
+  const navigate = useNavigate();
+  if (!customer?._id) return <span>@{name}</span>;
+  return (
+    <span
+      onClick={e => { e.stopPropagation(); navigate(`/clients?openClient=${customer._id}`); }}
+      style={{ cursor: 'pointer', color: 'var(--primary)', textDecoration: 'underline' }}
+      title="Открыть карточку клиента"
+    >
+      @{name}
+    </span>
+  );
+}
+
 function DateQuickFilters({ startDate, endDate, onSet }) {
   const today = new Date();
   const fmt = (d) => d.toISOString().split('T')[0];
@@ -289,7 +303,7 @@ const Preorders = () => {
                           <span style={{ fontWeight: '600', fontSize: '0.85rem' }}>{p.name}</span>
                           {p.customerId && (
                             <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.15rem' }}>
-                              @{p.customerId.username} #{p.customerId.uid}
+                              <ClientLink customer={p.customerId} name={p.customerId.username} /> #{p.customerId.uid}
                             </div>
                           )}
                         </div>

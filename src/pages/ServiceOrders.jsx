@@ -48,6 +48,21 @@ function CopyBtn({ value }) {
   );
 }
 
+function ClientCell({ customer }) {
+  const navigate = useNavigate();
+  if (!customer?._id) return <div style={{ fontWeight: '600', fontSize: '0.82rem' }}>{customer?.username || '—'}</div>;
+  return (
+    <button
+      type="button"
+      onClick={e => { e.stopPropagation(); navigate(`/clients?openClient=${customer._id}`); }}
+      style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
+      title="Открыть карточку клиента"
+    >
+      <div style={{ fontWeight: '600', fontSize: '0.82rem', color: 'var(--primary)' }}>{customer.username || '—'}</div>
+    </button>
+  );
+}
+
 function DateQuickFilters({ startDate, endDate, onSet }) {
   const today = new Date();
   const fmt = (d) => d.toISOString().split('T')[0];
@@ -337,7 +352,7 @@ const ServiceOrders = () => {
                         <CopyBtn value={order.uid} />
                       </td>
                       <td style={tdStyle}>
-                        <div style={{ fontWeight: '600', fontSize: '0.82rem' }}>{order.customerId?.username || '—'}</div>
+                        <ClientCell customer={order.customerId} />
                         {order.customerId?.uid && <div style={{ fontSize: '0.72rem', color: '#9ca3af', fontFamily: 'monospace' }}>{order.customerId.uid}</div>}
                       </td>
                       <td style={tdStyle}>

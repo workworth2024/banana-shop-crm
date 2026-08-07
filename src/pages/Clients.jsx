@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Check, X, ChevronLeft, ChevronRight, DollarSign, Eye, RefreshCw, KeyRound, ShoppingCart, ArrowLeftRight, Repeat2, Briefcase, GitBranch } from 'lucide-react';
+import { Search, Check, X, ChevronLeft, ChevronRight, DollarSign, Eye, RefreshCw, KeyRound, ShoppingCart, ArrowLeftRight, Repeat2, Briefcase, GitBranch, MessageSquare, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getClients, getClient, toggleClientStatus, adjustClientBalance, resetClientPassword, setClientReferrer } from '../api/clients';
 import { useAuthStore } from '../stores/authStore';
+import supportApi from '../api/support';
 
 const StatusBadge = ({ active }) => (
   <span style={{
@@ -51,7 +52,7 @@ const Clients = () => {
   const { user: currentUser } = useAuthStore();
   const isAdmin = currentUser?.role === 'admin';
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const clientsUrlSearch = searchParams.get('search') || '';
 
   const [clients, setClients] = useState([]);
@@ -78,6 +79,10 @@ const Clients = () => {
   const [referrerBackfill, setReferrerBackfill] = useState(true);
   const [referrerLoading, setReferrerLoading] = useState(false);
   const [clientReferrerInfo, setClientReferrerInfo] = useState(null);
+
+  const [showWriteBox, setShowWriteBox] = useState(false);
+  const [writeText, setWriteText] = useState('');
+  const [writeLoading, setWriteLoading] = useState(false);
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
@@ -108,6 +113,25 @@ const Clients = () => {
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
+
+  useEffect(() => {
+    const openClientId = searchParams.get('openClient');
+    if (!openClientId) return;
+    getClient(openClientId)
+      .then(data => {
+        if (data?.customer) {
+          setSelectedClient(data.customer);
+          setClientReferrerInfo(data.customer.referredBy || null);
+          setShowDetailModal(true);
+        }
+      })
+      .catch(() => toast.error('Не удалось загрузить клиента'));
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('openClient');
+      return next;
+    }, { replace: true });
+  }, [searchParams]);
 
   const handleToggleStatus = async (client) => {
     if (!isAdmin) return;
@@ -175,6 +199,8 @@ const Clients = () => {
     setSelectedClient(client);
     setClientReferrerInfo(null);
     setShowDetailModal(true);
+    setShowWriteBox(false);
+    setWriteText('');
     try {
       const data = await getClient(client._id);
       if (data?.customer) {
@@ -229,11 +255,31 @@ const Clients = () => {
   };
   const navToServices = (username) => {
     setShowDetailModal(false);
-    navigate(`/orders/services?search=${encodeURIComponent(username)}`);
+    navigate(`/service-orders?search=${encodeURIComponent(username)}`);
   };
   const navToTransactions = (username) => {
     setShowDetailModal(false);
     navigate(`/transactions?search=${encodeURIComponent(username)}`);
+  };
+
+  const handleWriteSubmit = async (e) => {
+    e.preventDefault();
+    if (!writeText.trim()) {
+      toast.error('Введите текст сообщения');
+      return;
+    }
+    setWriteLoading(true);
+    try {
+      const res = await supportApi.startTicket(selectedClient._id, { text: writeText.trim() });
+      setShowDetailModal(false);
+      setShowWriteBox(false);
+      setWriteText('');
+      navigate(`/support?ticket=${res.ticket._id}`);
+    } catch (err) {
+      toast.error(err.message || 'Ошибка отправки');
+    } finally {
+      setWriteLoading(false);
+    }
   };
 
   return (
@@ -488,6 +534,55 @@ const Clients = () => {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem', marginBottom: '1.25rem' }}>
+              {!showWriteBox ? (
+                <button
+                  type="button"
+                  onClick={() => setShowWriteBox(true)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                    padding: '0.7rem', borderRadius: '10px', border: '1.5px solid var(--primary)33',
+                    background: 'var(--primary)11', color: 'var(--primary)', fontWeight: '600',
+                    fontSize: '0.875rem', cursor: 'pointer'
+                  }}
+                >
+                  <MessageSquare size={16} /> Написать клиенту
+                </button>
+              ) : (
+                <form onSubmit={handleWriteSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <textarea
+                    autoFocus
+                    value={writeText}
+                    onChange={(e) => setWriteText(e.target.value)}
+                    placeholder="Введите сообщение клиенту..."
+                    rows={3}
+                    style={{ width: '100%', resize: 'vertical', padding: '0.6rem 0.75rem', borderRadius: '10px', border: '1.5px solid #e5e7eb', fontSize: '0.875rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setShowWriteBox(false); setWriteText(''); }}
+                      style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4b5563', padding: '0.6rem', borderRadius: '10px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={writeLoading}
+                      style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                        backgroundColor: 'var(--primary)', color: '#fff', padding: '0.6rem', borderRadius: '10px',
+                        border: 'none', fontWeight: '600', cursor: writeLoading ? 'default' : 'pointer', fontSize: '0.85rem',
+                        opacity: writeLoading ? 0.7 : 1
+                      }}
+                    >
+                      <Send size={14} /> {writeLoading ? 'Отправка...' : 'Отправить'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
 
             <button onClick={() => setShowDetailModal(false)} style={{ width: '100%', backgroundColor: '#f3f4f6', color: '#4b5563', padding: '0.7rem', borderRadius: '10px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>

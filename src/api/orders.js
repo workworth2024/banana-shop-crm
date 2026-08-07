@@ -22,8 +22,8 @@ export const getAvailableItemsForOrder = (id) =>
 export const processReplacement = (id, newItemId) =>
   api.post(`/orders/${id}/replacement`, { newItemId });
 
-export const processRefund = (id) =>
-  api.post(`/orders/${id}/refund`, {});
+export const processRefund = (id, quantity) =>
+  api.post(`/orders/${id}/refund`, quantity ? { quantity } : {});
 
 export const getReplacementsHistory = (params) => {
   const qs = new URLSearchParams(params).toString();

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
+import { useOverlayClose } from '../hooks/useOverlayClose'
 
 export function ConfirmDialog({ title, message, confirmText, danger, onConfirm, onCancel }) {
+  const overlayProps = useOverlayClose(true, onCancel)
   return (
-    <div style={{
+    <div {...overlayProps} style={{
       position: 'fixed', inset: 0, zIndex: 9999,
       backgroundColor: 'rgba(0,0,0,0.5)',
       display: 'flex', alignItems: 'center', justifyContent: 'center'

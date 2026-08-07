@@ -28,3 +28,13 @@ export const deleteProduct = (tab, id) => {
   const base = tab === 'youtube' ? '/products/youtube' : '/products/google-ads';
   return api.request(`${base}/${id}`, { method: 'DELETE' });
 };
+
+export const getProductPositions = (tab) => {
+  const base = tab === 'youtube' ? '/products/youtube' : '/products/google-ads';
+  return api.get(`${base}/positions`);
+};
+
+export const saveProductPositions = (tab, order) => {
+  const base = tab === 'youtube' ? '/products/youtube' : '/products/google-ads';
+  return api.patch(`${base}/positions`, { order });
+};

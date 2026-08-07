@@ -27,7 +27,8 @@ import {
   Settings,
   Layers,
   FileText,
-  GitBranch
+  GitBranch,
+  UserSquare2
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, label, end }) => (
@@ -297,10 +298,8 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
 
         <SectionLabel label="Продажи" />
         <SidebarGroupItem icon={ShoppingCart} label="История покупок" badge={purchasesUnread}>
-          <SidebarSubItem to="/orders" icon={List} label="История заказов" end badge={ordersUnread} />
+          <SidebarSubItem to="/orders" icon={List} label="История заказов" end badge={ordersUnread + preordersUnread + serviceOrdersUnread} />
           <SidebarSubItem to="/orders/replacements" icon={RefreshCw} label="История замен" badge={replacementsUnread} />
-          <SidebarSubItem to="/preorders" icon={ClipboardList} label="Предзаказы" badge={preordersUnread} />
-          <SidebarSubItem to="/service-orders" icon={FileText} label="История услуг" badge={serviceOrdersUnread} />
         </SidebarGroupItem>
 
         <SectionLabel label="Платежи" />
@@ -316,6 +315,9 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         <SidebarItem to="/templates" icon={FileText} label="Шаблоны" />
         <SidebarItemDisabled icon={Key} label="Продажа аккаунтов" />
         <SidebarItem to="/reviews" icon={Star} label="Отзывы" />
+
+        <SectionLabel label="Оформление" />
+        <SidebarItem to="/design/team" icon={UserSquare2} label="Наша команда" />
 
         <SectionLabel label="Поддержка" />
         <SidebarGroupItem icon={LifeBuoy} label="Поддержка" badge={supportUnread}>

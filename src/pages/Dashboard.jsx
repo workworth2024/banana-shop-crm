@@ -235,7 +235,7 @@ const Dashboard = () => {
             <KpiCard icon={Briefcase} label={`Услуги: ${fmtInt(data.kpi.services.count)}`}
               value={fmtMoney(data.kpi.services.sum)}
               delta={<Delta cur={data.kpi.services.sum} prev={data.kpi.services.prevSum} />}
-              onClick={() => navigate('/orders/services')} />
+              onClick={() => navigate('/service-orders')} />
             <KpiCard icon={Clock} label={`Предзаказы: ${fmtInt(data.kpi.preorders.count)}`}
               value={fmtMoney(data.kpi.preorders.sum)}
               delta={<Delta cur={data.kpi.preorders.sum} prev={data.kpi.preorders.prevSum} />}

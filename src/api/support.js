@@ -29,6 +29,14 @@ const supportApi = {
       body: buildFormData(text, files)
     });
   },
+  startTicket: (customerId, { text, files } = {}) => {
+    const fd = buildFormData(text, files);
+    fd.append('customerId', customerId);
+    return api.request('/support/tickets/start', {
+      method: 'POST',
+      body: fd
+    });
+  },
   assign: (id, userId) => api.post(`/support/tickets/${id}/assign`, { userId }),
   close: (id) => api.post(`/support/tickets/${id}/close`, {}),
   reopen: (id) => api.post(`/support/tickets/${id}/reopen`, {}),

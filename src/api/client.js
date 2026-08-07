@@ -12,23 +12,21 @@ const api = {
       headers['Content-Type'] = 'application/json';
     }
 
-    try {
-      const response = await fetch(url, {
-        credentials: 'include',
-        ...options,
-        headers
-      });
+    const response = await fetch(url, {
+      credentials: 'include',
+      ...options,
+      headers
+    });
 
-      const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Network response was not ok');
-      }
-
-      return data;
-    } catch (error) {
+    if (!response.ok) {
+      const error = new Error(data.message || 'Network response was not ok');
+      error.status = response.status;
       throw error;
     }
+
+    return data;
   },
 
   post(endpoint, body, options = {}) {

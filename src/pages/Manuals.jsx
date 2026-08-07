@@ -154,6 +154,11 @@ const Manuals = () => {
     fetchManuals();
   }, [fetchManuals]);
 
+  const manualTagIds = (manual) => {
+    const list = manual.tag_ids?.length ? manual.tag_ids : (manual.tag_id ? [manual.tag_id] : []);
+    return list.map(t => String(t?._id || t));
+  };
+
   const openManualModal = (manual = null) => {
     if (manual) {
       setEditingManual(manual);
@@ -164,19 +169,29 @@ const Manuals = () => {
         'desc.en': manual.desc?.en || '',
         link: manual.link,
         filter_id: manual.filter_id,
-        tag_id: manual.tag_id,
+        tag_ids: manualTagIds(manual),
         path_to_file: manual.path_to_file
       });
       setArticleContentRu(manual.content?.ru || '');
       setArticleContentEn(manual.content?.en || '');
     } else {
       setEditingManual(null);
-      setManualForm({ 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', link: '', filter_id: '', tag_id: '' });
+      setManualForm({ 'title.ru': '', 'title.en': '', 'desc.ru': '', 'desc.en': '', link: '', filter_id: '', tag_ids: [] });
       setArticleContentRu('');
       setArticleContentEn('');
     }
     setManualFile(null);
     setShowManualModal(true);
+  };
+
+  const toggleFormTag = (tagId) => {
+    setManualForm(prev => {
+      const current = prev.tag_ids || [];
+      return {
+        ...prev,
+        tag_ids: current.includes(tagId) ? current.filter(id => id !== tagId) : [...current, tagId]
+      };
+    });
   };
 
   const handleManualSubmit = async (e) => {
@@ -202,8 +217,7 @@ const Manuals = () => {
     const filterId = manualForm.filter_id?._id || manualForm.filter_id || '';
     formData.append('filter_id', filterId);
 
-    const tagId = manualForm.tag_id?._id || manualForm.tag_id || '';
-    formData.append('tag_id', tagId);
+    formData.append('tag_ids', JSON.stringify(manualForm.tag_ids || []));
 
     if (manualFile) {
       formData.append('file', manualFile);
@@ -330,7 +344,7 @@ const Manuals = () => {
                 Фильтр <Resizer onResize={(w) => handleResize('filter', w)} />
               </th>
               <th style={{ width: `${columnWidths.tag}px`, padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', position: 'relative' }}>
-                Тег <Resizer onResize={(w) => handleResize('tag', w)} />
+                Теги <Resizer onResize={(w) => handleResize('tag', w)} />
               </th>
               <th style={{ width: '120px', padding: '1rem 1.5rem', textAlign: 'right' }}>Действия</th>
             </tr>
@@ -361,16 +375,25 @@ const Manuals = () => {
                     <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
                   )}
                 </ClickableCell>
-                <ClickableCell text={m.tag_id ? (m.tag_id.name?.ru || m.tag_id.name?.en) : ''}>
-                  {m.tag_id ? (
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0.75rem', borderRadius: '8px', backgroundColor: '#eab30810', color: '#b45309', border: '1px solid #eab30830', fontSize: '0.75rem', fontWeight: '600' }}>
-                      <Hash size={12} />
-                      {m.tag_id.name?.ru || m.tag_id.name?.en}
-                    </div>
-                  ) : (
-                    <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
-                  )}
-                </ClickableCell>
+                {(() => {
+                  const rowTags = (m.tag_ids?.length ? m.tag_ids : (m.tag_id ? [m.tag_id] : [])).filter(t => t && t.name);
+                  return (
+                    <ClickableCell text={rowTags.map(t => t.name?.ru || t.name?.en).join(', ')}>
+                      {rowTags.length ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                          {rowTags.map(t => (
+                            <div key={t._id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem 0.6rem', borderRadius: '8px', backgroundColor: '#eab30810', color: '#b45309', border: '1px solid #eab30830', fontSize: '0.72rem', fontWeight: '600', whiteSpace: 'nowrap' }}>
+                              <Hash size={11} />
+                              {t.name?.ru || t.name?.en}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
+                      )}
+                    </ClickableCell>
+                  );
+                })()}
                 <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
                   {canManage && (
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -445,11 +468,56 @@ const Manuals = () => {
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>Тег</label>
-                <select value={manualForm.tag_id?._id || manualForm.tag_id || ''} onChange={(e) => setManualForm({...manualForm, tag_id: e.target.value})}>
-                  <option value="">Без тега</option>
-                  {tags.map(tg => <option key={tg._id} value={tg._id}>{tg.name.ru || tg.name.en}</option>)}
-                </select>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500' }}>
+                  Теги
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#9ca3af' }}>
+                    {manualForm.tag_ids?.length ? `выбрано: ${manualForm.tag_ids.length}` : 'можно выбрать несколько'}
+                  </span>
+                </label>
+                {tags.length === 0 ? (
+                  <p style={{ fontSize: '0.8rem', color: '#9ca3af', padding: '0.75rem 1rem', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px dashed #e5e7eb' }}>
+                    Теги не созданы — добавьте их в «Управление тегами»
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                    {tags.map(tg => {
+                      const selected = (manualForm.tag_ids || []).includes(String(tg._id));
+                      return (
+                        <button
+                          key={tg._id}
+                          type="button"
+                          onClick={() => toggleFormTag(String(tg._id))}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                            padding: '0.4rem 0.8rem', fontSize: '0.8rem', fontWeight: selected ? 700 : 500,
+                            backgroundColor: selected ? '#fef3c7' : 'white',
+                            color: selected ? '#b45309' : '#4b5563',
+                            border: selected ? '1.5px solid #f59e0b' : '1.5px solid #e5e7eb',
+                            borderRadius: '99px', cursor: 'pointer', transition: 'all 0.12s'
+                          }}
+                        >
+                          {selected ? <Check size={13} strokeWidth={3} /> : <Hash size={12} />}
+                          {tg.name.ru || tg.name.en}
+                        </button>
+                      );
+                    })}
+                    {(manualForm.tag_ids || []).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setManualForm(prev => ({ ...prev, tag_ids: [] }))}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                          padding: '0.4rem 0.7rem', fontSize: '0.75rem', fontWeight: 600,
+                          backgroundColor: 'transparent', color: '#9ca3af',
+                          border: 'none', borderRadius: '99px', cursor: 'pointer'
+                        }}
+                      >
+                        <X size={12} />
+                        Сбросить
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               <FileUploadInput
                 file={manualFile}

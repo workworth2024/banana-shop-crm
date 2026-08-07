@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Send, Paperclip, CheckCheck, Check, Lock, RefreshCw, MessageSquare, UserPlus, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { useSupportStore } from '../stores/supportStore';
 import { useSupportSocket, supportEmit } from '../hooks/useSupportSocket';
@@ -103,9 +104,22 @@ const Support = () => {
   const stickToBottomRef = useRef(true);
   const prevHeightRef = useRef(0);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   useSupportSocket();
 
   useEffect(() => { loadList(); }, [filters.status, filters.q, filters.from, filters.to, filters.page]);
+
+  useEffect(() => {
+    const ticketId = searchParams.get('ticket');
+    if (!ticketId) return;
+    loadMessages(ticketId).then(() => setActive(ticketId)).catch(() => toast.error('Тикет не найден'));
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('ticket');
+      return next;
+    }, { replace: true });
+  }, [searchParams]);
 
   const active = activeTicketId ? tickets.find((t) => String(t._id) === String(activeTicketId)) : null;
   const messages = active ? (messagesByTicket[active._id] || null) : null;

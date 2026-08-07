@@ -10,6 +10,9 @@ export const updatePreorderStatus = (id, status) =>
 export const deletePreorder = (id) =>
   api.delete(`/preorders/${id}`);
 
+export const processPreorderRefund = (id, quantity) =>
+  api.post(`/preorders/${id}/refund`, quantity ? { quantity } : {});
+
 export const uploadPreorderFiles = async (id, formData, { onUploadProgress } = {}) => {
   const base = import.meta.env.VITE_API_URL || '';
   return xhrPostFormData(`${base}/preorders/${id}/files`, formData, { onUploadProgress });

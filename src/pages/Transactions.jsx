@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, ArrowLeftRight, Wallet, Copy } from 'lucide-react';
+import { Search, ArrowLeftRight, Wallet, Copy, ExternalLink } from 'lucide-react';
 import api from '../api/client';
 import toast from 'react-hot-toast';
 
@@ -76,6 +76,7 @@ function DateQuickFilters({ startDate, endDate, onSet }) {
 }
 
 function TransactionsTable({ balanceOnly }) {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlSearch = searchParams.get('search') || '';
 
@@ -158,16 +159,16 @@ function TransactionsTable({ balanceOnly }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-              {['UID транзакции', 'Клиент', 'Тип', 'Сумма', 'Комментарий', 'Дата'].map(h => (
-                <th key={h} style={h === 'Дата' ? { ...thStyle, borderRight: 'none' } : thStyle}>{h}</th>
+              {['UID транзакции', 'Клиент', 'Тип', 'Сумма', 'Комментарий', 'Дата', 'Платёж'].map(h => (
+                <th key={h} style={h === 'Платёж' ? { ...thStyle, borderRight: 'none' } : thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
+              <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
             ) : items.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Транзакций нет</td></tr>
+              <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Транзакций нет</td></tr>
             ) : items.map(tx => (
               <tr key={tx._id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                 <td style={tdStyle}>
@@ -177,7 +178,18 @@ function TransactionsTable({ balanceOnly }) {
                   </div>
                 </td>
                 <td style={tdStyle}>
-                  <div style={{ fontWeight: '600', fontSize: '0.85rem' }}>{tx.userId?.username || '—'}</div>
+                  {tx.userId?._id ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/clients?openClient=${tx.userId._id}`)}
+                      style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
+                      title="Открыть карточку клиента"
+                    >
+                      <div style={{ fontWeight: '600', fontSize: '0.85rem', color: 'var(--primary)' }}>{tx.userId?.username || '—'}</div>
+                    </button>
+                  ) : (
+                    <div style={{ fontWeight: '600', fontSize: '0.85rem' }}>{tx.userId?.username || '—'}</div>
+                  )}
                   {tx.userId?.uid && (
                     <div style={{ fontSize: '0.68rem', fontFamily: 'monospace', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.1rem' }}>
                       {tx.userId.uid}<CopyBtn value={tx.userId.uid} />
@@ -202,9 +214,25 @@ function TransactionsTable({ balanceOnly }) {
                 <td style={{ ...tdStyle, maxWidth: '200px' }}>
                   <span style={{ fontSize: '0.82rem', color: '#374151' }}>{tx.note || '—'}</span>
                 </td>
-                <td style={{ ...tdStyle, borderRight: 'none', whiteSpace: 'nowrap' }}>
+                <td style={tdStyle}>
                   <div style={{ fontSize: '0.8rem', color: '#374151' }}>{new Date(tx.createdAt).toLocaleDateString('ru-RU')}</div>
                   <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{new Date(tx.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+                </td>
+                <td style={{ ...tdStyle, borderRight: 'none' }}>
+                  {tx.payLink ? (
+                    <a
+                      href={tx.payLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', fontWeight: '600', color: 'var(--primary)', textDecoration: 'none' }}
+                      title="Открыть страницу оплаты"
+                    >
+                      <ExternalLink size={12} /> Оплата
+                    </a>
+                  ) : (
+                    <span style={{ color: '#d1d5db', fontSize: '0.8rem' }}>—</span>
+                  )}
                 </td>
               </tr>
             ))}

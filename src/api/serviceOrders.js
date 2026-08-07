@@ -7,6 +7,9 @@ export const getServiceOrders = (params) =>
 export const updateServiceOrderStatus = (id, status, adminComment) =>
   api.put(`/service-orders/${id}/status`, { status, adminComment });
 
+export const processServiceOrderRefund = (id, amount) =>
+  api.post(`/service-orders/${id}/refund`, amount ? { amount } : {});
+
 export const uploadResultFiles = async (id, formData, { onUploadProgress } = {}) => {
   const base = import.meta.env.VITE_API_URL || '';
   return xhrPostFormData(`${base}/service-orders/${id}/result-files`, formData, { onUploadProgress });

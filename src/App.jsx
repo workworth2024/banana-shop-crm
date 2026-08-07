@@ -16,16 +16,15 @@ import AccountSales from './pages/AccountSales';
 import Support from './pages/Support';
 import Reviews from './pages/Reviews';
 import ContactForms from './pages/ContactForms';
-import Preorders from './pages/Preorders';
 import HealthServer from './pages/HealthServer';
 import Orders from './pages/Orders';
 import Transactions from './pages/Transactions';
 import NotifSettings from './pages/NotifSettings';
 import Scenarios from './pages/Scenarios';
-import ServiceOrders from './pages/ServiceOrders';
 import Profile from './pages/Profile';
 import Referral from './pages/Referral';
 import Tracking from './pages/Tracking';
+import Team from './pages/Team';
 
 function App() {
   return (
@@ -50,7 +49,6 @@ function App() {
           <Route path="purchases" element={<Purchases />} />
           <Route path="orders" element={<Orders />} />
           <Route path="orders/replacements" element={<Orders />} />
-          <Route path="orders/services" element={<Orders />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="balance-history" element={<Transactions />} />
           <Route path="products" element={<Products />} />
@@ -61,11 +59,12 @@ function App() {
           <Route path="reviews" element={<Reviews />} />
           <Route path="support" element={<Support />} />
           <Route path="contact-forms" element={<ContactForms />} />
-          <Route path="preorders" element={<Preorders />} />
-          <Route path="service-orders" element={<ServiceOrders />} />
+          <Route path="preorders" element={<Orders />} />
+          <Route path="service-orders" element={<Orders />} />
           <Route path="scenarios" element={<Scenarios />} />
           <Route path="referral" element={<Referral />} />
           <Route path="tracking" element={<Tracking />} />
+          <Route path="design/team" element={<Team />} />
           <Route path="health" element={<HealthServer />} />
           <Route path="notif-settings" element={<NotifSettings />} />
           <Route path="profile" element={<Profile />} />
