@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, ChevronDown, ChevronUp, Edit2, X, RefreshCw, DollarSign, Copy, Upload, Download } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Edit2, X, RefreshCw, DollarSign, Copy, Upload, Download, Receipt } from 'lucide-react';
 import {
   updateOrderStatus,
   getOrderReplaceRequest, getAvailableItemsForOrder,
@@ -52,6 +52,16 @@ function statusMeta(type, status) {
 }
 
 const PRODUCT_TYPE_LABELS = { GoogleAdsProduct: 'Google Ads', YoutubeProduct: 'YouTube' };
+
+const PAYMENT_CFG = { unpaid: { color: '#9ca3af', label: 'Не оплачен' }, paid: { color: '#3b82f6', label: 'Оплачен' } };
+
+/** Orders track payment through `status` (unpaid until paid/delivered); preorders and
+ * service orders have their own explicit `paymentStatus`. */
+function isRecordPaid(rec) {
+  if (rec.type === 'order') return rec.status !== 'unpaid';
+  if (rec.paymentStatus) return rec.paymentStatus === 'paid';
+  return rec.status !== 'unpaid' && rec.status !== 'pending';
+}
 
 const tdStyle = { padding: '0.75rem 1rem', borderRight: '1px solid #d1d5db', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top', userSelect: 'text' };
 const thStyle = { padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', borderRight: '1px solid #d1d5db', background: '#f9fafb' };
@@ -742,6 +752,7 @@ function DateQuickFilters({ startDate, endDate, onSet }) {
 }
 
 function HistoryTab({ onEdit, initialType }) {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initSearch = searchParams.get('search') || '';
 
@@ -825,16 +836,16 @@ function HistoryTab({ onEdit, initialType }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1000px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-              {['ID', 'Дата', 'Тип', 'Покупатель', 'Товар/услуга', 'Кол-во', 'Сумма', 'Возврат', 'Статус', 'Действия'].map(h => (
+              {['ID', 'Дата', 'Тип', 'Покупатель', 'Товар/услуга', 'Кол-во', 'Сумма', 'Возврат', 'Статус', 'Оплата', 'Действия'].map(h => (
                 <th key={h} style={thStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={10} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
+              <tr><td colSpan={11} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Загрузка...</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={10} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Записей нет</td></tr>
+              <tr><td colSpan={11} style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>Записей нет</td></tr>
             ) : records.map(rec => (
               <tr key={rec._id}>
                 <td style={tdStyle}>
@@ -881,6 +892,31 @@ function HistoryTab({ onEdit, initialType }) {
                 </td>
                 <td style={tdStyle}>
                   <StatusBadge status={rec.displayStatus} type={rec.type} />
+                </td>
+                <td style={tdStyle}>
+                  {rec.displayStatus === 'cancelled' ? (
+                    <span style={{ color: '#9ca3af', fontSize: '0.73rem' }}>—</span>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      <span style={{
+                        display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700',
+                        background: (isRecordPaid(rec) ? PAYMENT_CFG.paid.color : PAYMENT_CFG.unpaid.color) + '22',
+                        color: isRecordPaid(rec) ? PAYMENT_CFG.paid.color : PAYMENT_CFG.unpaid.color
+                      }}>
+                        {isRecordPaid(rec) ? PAYMENT_CFG.paid.label : PAYMENT_CFG.unpaid.label}
+                      </span>
+                      {isRecordPaid(rec) && (
+                        <button
+                          type="button"
+                          title="Перейти к транзакции"
+                          onClick={() => navigate(`/transactions?search=${encodeURIComponent(rec.uid || '')}`)}
+                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.25rem', borderRadius: '7px', border: '1.5px solid #e5e7eb', background: '#fff', color: '#6b7280', cursor: 'pointer' }}
+                        >
+                          <Receipt size={14} />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td style={{ ...tdStyle, borderRight: 'none' }}>
                   <button onClick={() => onEdit(rec)} title="Редактировать" style={{ padding: '0.35rem 0.55rem', borderRadius: '7px', border: '1.5px solid #e5e7eb', background: 'transparent', cursor: 'pointer', color: '#6b7280', display: 'flex', alignItems: 'center' }}>
