@@ -15,7 +15,7 @@ import { useAdminNotifStore } from '../stores/adminNotifStore';
 import TransferProgressOverlay from '../components/TransferProgressOverlay';
 import toast from 'react-hot-toast';
 
-const TYPE_LABELS = { order: 'Заказ', preorder: 'Предзаказ', service_order: 'Услуга' };
+const TYPE_LABELS = { order: 'Заказ', preorder: 'Предзаказ', service_order: 'Услуга', white_page: 'White Page' };
 
 const STATUS_META = {
   order: {
@@ -38,11 +38,17 @@ const STATUS_META = {
     in_progress: { label: 'В работе', color: '#6366f1' },
     completed: { label: 'Выполнена', color: '#059669' },
     cancelled: { label: 'Отменена', color: '#ef4444' }
+  },
+  white_page: {
+    'on-generate': { label: 'Генерируется', color: '#f59e0b' },
+    completed: { label: 'Готова', color: '#059669' },
+    failed: { label: 'Ошибка', color: '#ef4444' }
   }
 };
 
 function getStatusOptions(type) {
   if (type === 'order') return ['unpaid', 'pending', 'paid', 'delivered', 'waiting_replacement', 'replaced', 'cancelled'];
+  if (type === 'white_page') return ['on-generate', 'completed', 'failed'];
   return ['pending', 'in_progress', 'completed', 'cancelled'];
 }
 
@@ -59,6 +65,9 @@ const PAYMENT_CFG = { unpaid: { color: '#9ca3af', label: 'Не оплачен' }
  * service orders have their own explicit `paymentStatus`. */
 function isRecordPaid(rec) {
   if (rec.type === 'order') return rec.status !== 'unpaid';
+  // White page generation is charged upfront, before the order record even exists —
+  // there's no "unpaid" state for it.
+  if (rec.type === 'white_page') return true;
   if (rec.paymentStatus) return rec.paymentStatus === 'paid';
   return rec.status !== 'unpaid' && rec.status !== 'pending';
 }
@@ -358,6 +367,7 @@ function HistoryEditModal({ record, onClose, onRefresh }) {
   const isOrder = record.type === 'order';
   const isService = record.type === 'service_order';
   const isPreorder = record.type === 'preorder';
+  const isWhitePage = record.type === 'white_page';
 
   const [files, setFiles] = useState(isPreorder ? (record.files || []) : (record.resultFiles || []));
   const [customerFiles] = useState(record.customerFiles || []);
@@ -545,6 +555,17 @@ function HistoryEditModal({ record, onClose, onRefresh }) {
           <div style={{ gridColumn: '1/-1' }}><span style={{ color: '#6b7280' }}>Товар/услуга:</span> <strong>{record.displayTitle || '—'}</strong></div>
           <div><span style={{ color: '#6b7280' }}>Кол-во:</span> <strong>{record.displayQuantity || 1}</strong></div>
           <div><span style={{ color: '#6b7280' }}>Сумма:</span> <strong style={{ color: '#059669' }}>${totalAmount?.toFixed(2)}</strong></div>
+          {isWhitePage && (
+            <>
+              <div><span style={{ color: '#6b7280' }}>Формат:</span> <strong>{record.pageType === 'blog' ? 'Blog' : 'Landing page'}</strong></div>
+              {record.geo && <div><span style={{ color: '#6b7280' }}>Гео:</span> <strong>{record.geo}</strong></div>}
+              {record.language && <div><span style={{ color: '#6b7280' }}>Язык:</span> <strong>{record.language}</strong></div>}
+              {record.theme && <div><span style={{ color: '#6b7280' }}>Тема:</span> <strong>{record.theme}</strong></div>}
+              {record.lastError && (
+                <div style={{ gridColumn: '1/-1' }}><span style={{ color: '#6b7280' }}>Ошибка:</span> <strong style={{ color: '#ef4444' }}>{record.lastError}</strong></div>
+              )}
+            </>
+          )}
           {isPreorder && Array.isArray(record.geoBreakdown) && record.geoBreakdown.length > 0 && (
             <div style={{ gridColumn: '1/-1' }}>
               <span style={{ color: '#6b7280' }}>Гео:</span>{' '}
@@ -561,14 +582,18 @@ function HistoryEditModal({ record, onClose, onRefresh }) {
 
         <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem', marginBottom: '1.25rem' }}>
           <div style={{ fontSize: '0.82rem', fontWeight: '700', color: '#6b7280', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Статус</div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <select value={status} onChange={e => setStatus(e.target.value)} style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #e5e7eb', background: 'white', color: 'var(--text-main)', fontSize: '0.875rem', outline: 'none' }}>
-              {getStatusOptions(record.type).map(s => <option key={s} value={s}>{statusMeta(record.type, s).label}</option>)}
-            </select>
-            <button onClick={handleStatusSave} disabled={saving || status === record.displayStatus} style={{ padding: '0.55rem 1rem', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: '700', fontSize: '0.875rem', cursor: saving || status === record.displayStatus ? 'not-allowed' : 'pointer', opacity: saving || status === record.displayStatus ? 0.6 : 1 }}>
-              {saving ? '...' : 'Сохранить'}
-            </button>
-          </div>
+          {isWhitePage ? (
+            <StatusBadge status={record.displayStatus} type={record.type} />
+          ) : (
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <select value={status} onChange={e => setStatus(e.target.value)} style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #e5e7eb', background: 'white', color: 'var(--text-main)', fontSize: '0.875rem', outline: 'none' }}>
+                {getStatusOptions(record.type).map(s => <option key={s} value={s}>{statusMeta(record.type, s).label}</option>)}
+              </select>
+              <button onClick={handleStatusSave} disabled={saving || status === record.displayStatus} style={{ padding: '0.55rem 1rem', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: '700', fontSize: '0.875rem', cursor: saving || status === record.displayStatus ? 'not-allowed' : 'pointer', opacity: saving || status === record.displayStatus ? 0.6 : 1 }}>
+                {saving ? '...' : 'Сохранить'}
+              </button>
+            </div>
+          )}
         </div>
 
         {isOrder && !loadingReq && replaceRequest && (
@@ -677,6 +702,7 @@ function HistoryEditModal({ record, onClose, onRefresh }) {
           </div>
         )}
 
+        {!isWhitePage && (
         <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem' }}>
           <div style={{ fontSize: '0.82rem', fontWeight: '700', color: '#6b7280', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Возврат средств</div>
 
@@ -716,6 +742,7 @@ function HistoryEditModal({ record, onClose, onRefresh }) {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );
@@ -800,7 +827,7 @@ function HistoryTab({ onEdit, initialType }) {
     setCustomerId(''); setCustomerLabel(''); setProductTitle(''); setStartDate(''); setEndDate('');
   };
 
-  const statusOptions = typeFilter ? getStatusOptions(typeFilter) : ['pending', 'in_progress', 'completed', 'unpaid', 'paid', 'delivered', 'waiting_replacement', 'replaced', 'cancelled'];
+  const statusOptions = typeFilter ? getStatusOptions(typeFilter) : ['pending', 'in_progress', 'completed', 'unpaid', 'paid', 'delivered', 'waiting_replacement', 'replaced', 'cancelled', 'on-generate', 'failed'];
 
   return (
     <>
@@ -819,6 +846,7 @@ function HistoryTab({ onEdit, initialType }) {
             <option value="order">Заказ</option>
             <option value="preorder">Предзаказ</option>
             <option value="service_order">Услуга</option>
+            <option value="white_page">White Page</option>
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #e5e7eb', background: 'white', color: 'var(--text-main)', fontSize: '0.85rem', outline: 'none' }}>
             <option value="">Все статусы</option>
@@ -1072,7 +1100,7 @@ const Orders = () => {
     } else if (initialType === 'service_order') {
       useAdminNotifStore.getState().markCategoryRead('order_service');
     } else {
-      useAdminNotifStore.getState().markCategoryRead('order');
+      useAdminNotifStore.getState().markCategoryRead(['order', 'white_page_order']);
     }
   }, [activeTab, initialType]);
 

@@ -248,7 +248,8 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
   const replacementsUnread = categoryCounts.replacement || 0;
   const preordersUnread = categoryCounts.order_preorder || 0;
   const serviceOrdersUnread = categoryCounts.order_service || 0;
-  const purchasesUnread = ordersUnread + replacementsUnread + preordersUnread + serviceOrdersUnread;
+  const whitePagesUnread = categoryCounts.white_page_order || 0;
+  const purchasesUnread = ordersUnread + replacementsUnread + preordersUnread + serviceOrdersUnread + whitePagesUnread;
   const location = useLocation();
 
   React.useEffect(() => {
@@ -298,7 +299,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
 
         <SectionLabel label="Продажи" />
         <SidebarGroupItem icon={ShoppingCart} label="История покупок" badge={purchasesUnread}>
-          <SidebarSubItem to="/orders" icon={List} label="История заказов" end badge={ordersUnread + preordersUnread + serviceOrdersUnread} />
+          <SidebarSubItem to="/orders" icon={List} label="История заказов" end badge={ordersUnread + preordersUnread + serviceOrdersUnread + whitePagesUnread} />
           <SidebarSubItem to="/orders/replacements" icon={RefreshCw} label="История замен" badge={replacementsUnread} />
         </SidebarGroupItem>
 
