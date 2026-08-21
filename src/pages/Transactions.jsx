@@ -10,7 +10,8 @@ const TYPE_LABELS = {
   withdraw_admin: 'Списание (админ)',
   order: 'Покупка',
   preorder: 'Предзаказ',
-  service_order: 'Услуга'
+  service_order: 'Услуга',
+  promo_code: 'Промокод'
 };
 const TYPE_COLORS = {
   deposit_cash: '#059669',
@@ -18,7 +19,8 @@ const TYPE_COLORS = {
   withdraw_admin: '#ef4444',
   order: '#3b82f6',
   preorder: '#8b5cf6',
-  service_order: '#0ea5e9'
+  service_order: '#0ea5e9',
+  promo_code: '#d946ef'
 };
 
 const BALANCE_TYPES = ['deposit_cash', 'deposit_admin', 'withdraw_admin'];
