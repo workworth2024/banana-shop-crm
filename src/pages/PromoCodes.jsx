@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, X, Search, BarChart3, Power } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Search, BarChart3, Power, Copy, Link2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   getPromoCodes, createPromoCode, updatePromoCode, setPromoCodeStatus,
@@ -10,6 +10,26 @@ import { useConfirm } from '../components/ConfirmDialog';
 
 const TYPE_LABELS = { balance: 'Баланс', discount: 'Скидка' };
 const SCOPE_LABELS = { any: 'Любой продукт', google_ads: 'Google Ads', youtube: 'YouTube', service: 'Услуга' };
+
+const SITE_URL = (import.meta.env.VITE_API_URL || 'https://banana-traff-shop.com').replace(/\/api\/v3\/?$/, '');
+const promoLink = (code) => `${SITE_URL}/?promo=${encodeURIComponent(code)}`;
+
+function copyToClipboard(value, label) {
+  navigator.clipboard.writeText(value).then(() => toast.success(label || 'Скопировано'));
+}
+
+function CopyBtn({ value, label, title, icon: Icon = Copy }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); copyToClipboard(value, label); }}
+      title={title || 'Скопировать'}
+      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0 0.2rem', display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}
+    >
+      <Icon size={12} />
+    </button>
+  );
+}
 
 const emptyForm = {
   name: '',
@@ -99,7 +119,7 @@ function CustomerMultiSelect({ selected, onChange }) {
               <div style={{ padding: '0.6rem 0.8rem', fontSize: '0.8rem', color: '#6b7280' }}>Ничего не найдено</div>
             ) : options.map((c) => (
               <button key={c._id} type="button" onClick={() => add(c)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem 0.8rem', background: 'none', border: 'none', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', fontSize: '0.82rem' }}>
-                <div style={{ fontWeight: 600 }}>{c.username}</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{c.username || '—'}</div>
                 <div style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: '#6b7280' }}>{c.uid}</div>
               </button>
             ))}
@@ -190,6 +210,19 @@ function PromoCodeModal({ promo, onClose, onSaved }) {
               <input type="text" value={form.code} onChange={(e) => set('code', e.target.value.toUpperCase())} placeholder="SUMMER25" style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: '0.03em' }} />
             </div>
           </div>
+
+          {/^[A-Za-z0-9_-]{3,40}$/.test(form.code.trim()) && (
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => copyToClipboard(form.code.trim().toUpperCase(), 'Код скопирован')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: 0, border: 'none', background: 'none', color: '#6b7280', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
+                <Copy size={13} /> Скопировать код
+              </button>
+              <button type="button" onClick={() => copyToClipboard(promoLink(form.code.trim().toUpperCase()), 'Ссылка для активации скопирована')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: 0, border: 'none', background: 'none', color: '#6b7280', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
+                <Link2 size={13} /> Скопировать ссылку для активации
+              </button>
+            </div>
+          )}
 
           <div>
             <label style={labelStyle}>Тип промокода</label>
@@ -310,7 +343,11 @@ function RedemptionsModal({ promo, onClose }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <div>
             <h2 style={{ fontSize: '1.15rem', fontWeight: '700' }}>Активации промокода</h2>
-            <div style={{ fontFamily: 'monospace', color: 'var(--primary)', fontSize: '0.85rem' }}>{promo.code}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', fontFamily: 'monospace', color: 'var(--primary)', fontSize: '0.85rem' }}>
+              {promo.code}
+              <CopyBtn value={promo.code} label="Код скопирован" title="Скопировать код" />
+              <CopyBtn value={promoLink(promo.code)} label="Ссылка для активации скопирована" title="Скопировать ссылку активации" icon={Link2} />
+            </div>
           </div>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
         </div>
@@ -473,7 +510,11 @@ const PromoCodes = () => {
                 return (
                   <tr key={promo._id}>
                     <td style={tdStyle}>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)' }}>{promo.code}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)' }}>{promo.code}</span>
+                        <CopyBtn value={promo.code} label="Код скопирован" title="Скопировать код" />
+                        <CopyBtn value={promoLink(promo.code)} label="Ссылка для активации скопирована" title="Скопировать ссылку активации" icon={Link2} />
+                      </div>
                     </td>
                     <td style={tdStyle}>{promo.name}</td>
                     <td style={tdStyle}>
