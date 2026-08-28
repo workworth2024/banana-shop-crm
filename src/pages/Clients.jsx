@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Check, X, ChevronLeft, ChevronRight, DollarSign, Eye, RefreshCw, KeyRound, ShoppingCart, ArrowLeftRight, Repeat2, Briefcase, GitBranch, MessageSquare, Send } from 'lucide-react';
+import { Search, Check, X, ChevronLeft, ChevronRight, DollarSign, Eye, RefreshCw, KeyRound, ShoppingCart, ArrowLeftRight, Repeat2, Briefcase, GitBranch, MessageSquare, Send, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getClients, getClient, toggleClientStatus, adjustClientBalance, resetClientPassword, setClientReferrer } from '../api/clients';
 import { useAuthStore } from '../stores/authStore';
@@ -62,6 +62,12 @@ const Clients = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState(clientsUrlSearch);
   const [filterStatus, setFilterStatus] = useState('');
+  const [minBalance, setMinBalance] = useState('');
+  const [maxBalance, setMaxBalance] = useState('');
+  const [minBonusBalance, setMinBonusBalance] = useState('');
+  const [maxBonusBalance, setMaxBonusBalance] = useState('');
+  const [lastSeenFrom, setLastSeenFrom] = useState('');
+  const [lastSeenTo, setLastSeenTo] = useState('');
 
   const [selectedClient, setSelectedClient] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -93,6 +99,12 @@ const Clients = () => {
         search,
         status: filterStatus
       });
+      if (minBalance !== '') params.set('minBalance', minBalance);
+      if (maxBalance !== '') params.set('maxBalance', maxBalance);
+      if (minBonusBalance !== '') params.set('minBonusBalance', minBonusBalance);
+      if (maxBonusBalance !== '') params.set('maxBonusBalance', maxBonusBalance);
+      if (lastSeenFrom) params.set('lastSeenFrom', lastSeenFrom);
+      if (lastSeenTo) params.set('lastSeenTo', lastSeenTo);
       const data = await getClients(params);
       setClients(data.customers);
       setTotal(data.total);
@@ -102,7 +114,7 @@ const Clients = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, search, filterStatus]);
+  }, [currentPage, search, filterStatus, minBalance, maxBalance, minBonusBalance, maxBonusBalance, lastSeenFrom, lastSeenTo]);
 
   useEffect(() => {
     const s = searchParams.get('search') || '';
@@ -257,6 +269,10 @@ const Clients = () => {
     setShowDetailModal(false);
     navigate(`/service-orders?search=${encodeURIComponent(username)}`);
   };
+  const navToWhitePages = (username) => {
+    setShowDetailModal(false);
+    navigate(`/orders?type=white_page&search=${encodeURIComponent(username)}`);
+  };
   const navToTransactions = (username) => {
     setShowDetailModal(false);
     navigate(`/transactions?search=${encodeURIComponent(username)}`);
@@ -328,6 +344,63 @@ const Clients = () => {
         </select>
       </div>
 
+      <div style={{
+        backgroundColor: 'white',
+        padding: '1.25rem 1.5rem',
+        borderRadius: '16px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        display: 'flex',
+        gap: '1.5rem',
+        alignItems: 'center',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Баланс, $</span>
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            <input type="number" placeholder="от" value={minBalance}
+              onChange={(e) => { setMinBalance(e.target.value); setCurrentPage(1); }}
+              style={{ width: '90px' }} />
+            <input type="number" placeholder="до" value={maxBalance}
+              onChange={(e) => { setMaxBalance(e.target.value); setCurrentPage(1); }}
+              style={{ width: '90px' }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: '600', color: '#7c3aed', textTransform: 'uppercase' }}>Бонус, $</span>
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            <input type="number" placeholder="от" value={minBonusBalance}
+              onChange={(e) => { setMinBonusBalance(e.target.value); setCurrentPage(1); }}
+              style={{ width: '90px' }} />
+            <input type="number" placeholder="до" value={maxBonusBalance}
+              onChange={(e) => { setMaxBonusBalance(e.target.value); setCurrentPage(1); }}
+              style={{ width: '90px' }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Последняя активность</span>
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            <input type="date" value={lastSeenFrom}
+              onChange={(e) => { setLastSeenFrom(e.target.value); setCurrentPage(1); }}
+              style={{ width: '150px' }} />
+            <input type="date" value={lastSeenTo}
+              onChange={(e) => { setLastSeenTo(e.target.value); setCurrentPage(1); }}
+              style={{ width: '150px' }} />
+          </div>
+        </div>
+        {(minBalance || maxBalance || minBonusBalance || maxBonusBalance || lastSeenFrom || lastSeenTo) && (
+          <button
+            type="button"
+            onClick={() => {
+              setMinBalance(''); setMaxBalance(''); setMinBonusBalance(''); setMaxBonusBalance('');
+              setLastSeenFrom(''); setLastSeenTo(''); setCurrentPage(1);
+            }}
+            style={{ padding: '0.5rem 0.875rem', backgroundColor: '#f3f4f6', color: '#4b5563', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: '600', alignSelf: 'flex-end' }}
+          >
+            Сбросить фильтры
+          </button>
+        )}
+      </div>
+
       <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
         <div className="table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -336,18 +409,20 @@ const Clients = () => {
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>UID / Дата</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Клиент</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Telegram</th>
+              <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Реферер</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Баланс</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#7c3aed', textTransform: 'uppercase' }}>Бонус</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Статус</th>
               <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Online</th>
+              <th style={{ padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Последняя активность</th>
               <th style={{ padding: '1rem 1.5rem', textAlign: 'right' }}></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Загрузка...</td></tr>
+              <tr><td colSpan="10" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Загрузка...</td></tr>
             ) : clients.length === 0 ? (
-              <tr><td colSpan="8" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Клиенты не найдены</td></tr>
+              <tr><td colSpan="10" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Клиенты не найдены</td></tr>
             ) : clients.map((c) => (
               <tr key={c._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '1rem 1.5rem' }}>
@@ -366,6 +441,23 @@ const Clients = () => {
                   ) : null}
                   {c.telegramUsername ? (
                     <span style={{ fontSize: '0.875rem', color: '#0ea5e9' }}>@{c.telegramUsername}</span>
+                  ) : (
+                    <span style={{ color: '#d1d5db', fontSize: '0.875rem' }}>—</span>
+                  )}
+                </td>
+                <td style={{ padding: '1rem 1.5rem' }}>
+                  {c.referredBy ? (
+                    <button
+                      type="button"
+                      onClick={() => setSearchParams({ search: c.referredBy.username || c.referredBy.uid || '' })}
+                      style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
+                      title="Найти реферера в списке"
+                    >
+                      <div style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--primary)' }}>{c.referredBy.username || '—'}</div>
+                      {c.referredBy.telegramUsername && (
+                        <div style={{ fontSize: '0.75rem', color: '#0ea5e9' }}>@{c.referredBy.telegramUsername}</div>
+                      )}
+                    </button>
                   ) : (
                     <span style={{ color: '#d1d5db', fontSize: '0.875rem' }}>—</span>
                   )}
@@ -393,6 +485,17 @@ const Clients = () => {
                     <div style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: '0.15rem' }}>
                       {formatLastSeen(c.lastSeen)}
                     </div>
+                  )}
+                </td>
+                <td style={{ padding: '1rem 1.5rem' }}>
+                  {c.isOnline ? (
+                    <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: '600' }}>Сейчас онлайн</span>
+                  ) : c.lastSeen ? (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-main)' }}>
+                      {new Date(c.lastSeen).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#d1d5db', fontSize: '0.875rem' }}>Никогда</span>
                   )}
                 </td>
                 <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
@@ -520,6 +623,7 @@ const Clients = () => {
                   { label: 'Заказы', icon: ShoppingCart, color: '#3b82f6', bg: '#eff6ff', action: () => navToOrders(selectedClient.username) },
                   { label: 'Замены', icon: Repeat2, color: '#8b5cf6', bg: '#f5f3ff', action: () => navToReplacements(selectedClient.username) },
                   { label: 'Услуги', icon: Briefcase, color: '#f59e0b', bg: '#fffbeb', action: () => navToServices(selectedClient.username) },
+                  { label: 'White Pages', icon: Globe, color: '#0ea5e9', bg: '#f0f9ff', action: () => navToWhitePages(selectedClient.username) },
                   { label: 'Транзакции', icon: ArrowLeftRight, color: '#059669', bg: '#ecfdf5', action: () => navToTransactions(selectedClient.username) },
                 ].map(({ label, icon: Icon, color, bg, action }) => (
                   <button key={label} onClick={action} style={{
