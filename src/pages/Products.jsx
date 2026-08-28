@@ -227,6 +227,22 @@ const Products = () => {
     fetchProducts();
   }, [fetchProducts]);
 
+  // Deep-link from Orders: /products?tab=...&openInventory=<productId>&orderUid=<uid>
+  // opens the digital-files modal for that product pre-filtered to the order's files.
+  useEffect(() => {
+    const openInventoryId = searchParams.get('openInventory');
+    if (!openInventoryId || products.length === 0) return;
+    const product = products.find(p => p._id === openInventoryId);
+    if (product) {
+      setInventoryProduct({
+        product,
+        productType: activeTab === 'youtube' ? 'YoutubeProduct' : 'GoogleAdsProduct',
+        initialOrderUid: searchParams.get('orderUid') || ''
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, selectedFilter, selectedType, selectedGeo, startDate, endDate, pageSize, activeTab]);
@@ -1503,6 +1519,7 @@ const Products = () => {
         <DigitalInventoryModal
           product={inventoryProduct.product}
           productType={inventoryProduct.productType}
+          initialOrderUid={inventoryProduct.initialOrderUid || ''}
           onClose={() => setInventoryProduct(null)}
           onCountsChanged={(newCount) => {
             setProducts((prev) =>

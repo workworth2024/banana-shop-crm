@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Upload, Download, Trash2, RefreshCw, Copy, Check, Search, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, Upload, Download, Trash2, RefreshCw, Copy, Check, Search, Calendar, ShoppingCart } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TransferProgressOverlay from './TransferProgressOverlay';
 import { xhrPostFormData, xhrDownloadBlob } from '../utils/fileTransfer';
@@ -50,7 +51,8 @@ function CopyButton({ text }) {
   );
 }
 
-function DigitalInventoryModal({ product, productType, onClose, onCountsChanged }) {
+function DigitalInventoryModal({ product, productType, onClose, onCountsChanged, initialOrderUid = '' }) {
+  const navigate = useNavigate();
   const initialGeos = Array.isArray(product?.geos) ? product.geos : [];
   const [productGeos, setProductGeos] = useState(initialGeos.map(g => ({ code: g.code, counts: Number(g.counts) || 0 })));
   const [selectedGeo, setSelectedGeo] = useState(initialGeos.length === 1 ? initialGeos[0].code : '');
@@ -62,6 +64,8 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [orderUid, setOrderUid] = useState(initialOrderUid);
+  const [orderUidInput, setOrderUidInput] = useState(initialOrderUid);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
@@ -88,6 +92,7 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
       const params = new URLSearchParams({ page: p, limit: 20 });
       if (statusFilter) params.set('status', statusFilter);
       if (search) params.set('search', search);
+      if (orderUid) params.set('orderUid', orderUid);
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
       if (selectedGeo) params.set('geo', selectedGeo);
@@ -107,9 +112,9 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, search, startDate, endDate, selectedGeo, product._id, productType]);
+  }, [page, statusFilter, search, orderUid, startDate, endDate, selectedGeo, product._id, productType]);
 
-  useEffect(() => { fetchItems(page); }, [page, statusFilter, search, startDate, endDate, selectedGeo]);
+  useEffect(() => { fetchItems(page); }, [page, statusFilter, search, orderUid, startDate, endDate, selectedGeo]);
 
   const handleFiles = async (files) => {
     if (!files || files.length === 0) return;
@@ -208,6 +213,12 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setSearch(searchInput);
+    setPage(1);
+  };
+
+  const handleOrderUidSubmit = (e) => {
+    e.preventDefault();
+    setOrderUid(orderUidInput.trim());
     setPage(1);
   };
 
@@ -342,6 +353,23 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
               </button>
             )}
           </form>
+          <form onSubmit={handleOrderUidSubmit} style={{ display: 'flex', gap: '0.4rem', minWidth: '190px' }}>
+            <input
+              type="text"
+              value={orderUidInput}
+              onChange={(e) => setOrderUidInput(e.target.value)}
+              placeholder="UID заказа..."
+              style={{ flex: 1, padding: '0.4rem 0.75rem', borderRadius: '8px', border: orderUid ? '1.5px solid #3b82f6' : '1px solid #e5e7eb', fontSize: '0.875rem', outline: 'none', background: '#fff', color: '#374151' }}
+            />
+            <button type="submit" title="Найти файлы этого заказа" style={{ padding: '0.4rem 0.7rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <ShoppingCart size={14} />
+            </button>
+            {orderUid && (
+              <button type="button" onClick={() => { setOrderUid(''); setOrderUidInput(''); setPage(1); }} style={{ padding: '0.4rem 0.65rem', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem' }}>
+                ✕
+              </button>
+            )}
+          </form>
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -397,6 +425,7 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>Гео</th>
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>Размер</th>
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>Статус</th>
+                  <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>Заказ</th>
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>UID</th>
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'right', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #f0f0f0' }}>Действия</th>
                 </tr>
@@ -427,6 +456,20 @@ function DigitalInventoryModal({ product, productType, onClose, onCountsChanged 
                       <span style={{ fontSize: '0.78rem', fontWeight: '600', color: STATUS_COLORS[item.status], background: STATUS_COLORS[item.status] + '1a', padding: '0.2rem 0.55rem', borderRadius: '20px' }}>
                         {STATUS_LABELS[item.status] || item.status}
                       </span>
+                    </td>
+                    <td style={{ padding: '0.6rem 0.75rem' }}>
+                      {item.orderId?.uid ? (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/orders?search=${encodeURIComponent(item.orderId.uid)}`)}
+                          title="Перейти к заказу"
+                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.78rem', color: '#3b82f6', fontWeight: 600 }}
+                        >
+                          {item.orderId.uid}
+                        </button>
+                      ) : (
+                        <span style={{ color: '#d1d5db', fontSize: '0.8rem' }}>—</span>
+                      )}
                     </td>
                     <td style={{ padding: '0.6rem 0.75rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
