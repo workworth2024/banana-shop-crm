@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, ChevronDown, ChevronUp, Edit2, X, RefreshCw, DollarSign, Copy, Upload, Download, Receipt } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Edit2, X, RefreshCw, DollarSign, Copy, Upload, Download, Receipt, ExternalLink } from 'lucide-react';
 import {
   updateOrderStatus,
   getOrderReplaceRequest, getAvailableItemsForOrder,
@@ -70,6 +70,29 @@ function isRecordPaid(rec) {
   if (rec.type === 'white_page') return true;
   if (rec.paymentStatus) return rec.paymentStatus === 'paid';
   return rec.status !== 'unpaid' && rec.status !== 'pending';
+}
+
+/** Builds a CRM link to the catalog item (product/service) behind an order-history
+ * record, so admins can jump straight to it. White pages have no catalog entry. */
+function catalogLinkFor(rec) {
+  const title = rec.displayTitle || '';
+  if (rec.type === 'order') {
+    const tab = rec.productType === 'YoutubeProduct' ? 'youtube' : 'google-ads';
+    // Deep-links straight into the digital-files modal for this product, pre-filtered
+    // to this order's UID — shows exactly which files were sold under this order.
+    if (rec.productId) {
+      return `/products?tab=${tab}&openInventory=${rec.productId}&orderUid=${encodeURIComponent(rec.uid || '')}`;
+    }
+    return `/products?tab=${tab}&search=${encodeURIComponent(title)}`;
+  }
+  if (rec.type === 'preorder') {
+    const tab = rec.youtube_item_id ? 'youtube' : 'google-ads';
+    return `/products?tab=${tab}&search=${encodeURIComponent(title)}`;
+  }
+  if (rec.type === 'service_order') {
+    return `/services?search=${encodeURIComponent(title)}`;
+  }
+  return null;
 }
 
 const tdStyle = { padding: '0.75rem 1rem', borderRight: '1px solid #d1d5db', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top', userSelect: 'text' };
@@ -790,7 +813,7 @@ function HistoryTab({ onEdit, initialType }) {
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState(initSearch);
   const [search, setSearch] = useState(initSearch);
-  const [typeFilter, setTypeFilter] = useState(initialType || '');
+  const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || initialType || '');
   const [statusFilter, setStatusFilter] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [customerLabel, setCustomerLabel] = useState('');
@@ -798,7 +821,7 @@ function HistoryTab({ onEdit, initialType }) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  useEffect(() => { setTypeFilter(initialType || ''); }, [initialType]);
+  useEffect(() => { setTypeFilter(searchParams.get('type') || initialType || ''); }, [initialType, searchParams]);
 
   const fetchHistory = useCallback(async (page = 1) => {
     setLoading(true);
@@ -898,9 +921,21 @@ function HistoryTab({ onEdit, initialType }) {
                   )}
                 </td>
                 <td style={{ ...tdStyle, maxWidth: '200px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: '600', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {rec.displayTitle || '—'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {rec.displayTitle || '—'}
+                    </span>
+                    {catalogLinkFor(rec) && (
+                      <button
+                        type="button"
+                        title="Перейти к товару/услуге"
+                        onClick={() => navigate(catalogLinkFor(rec))}
+                        style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0.2rem', borderRadius: '6px', border: '1.5px solid #e5e7eb', background: '#fff', color: '#6b7280', cursor: 'pointer' }}
+                      >
+                        <ExternalLink size={12} />
+                      </button>
+                    )}
+                  </div>
                   {rec.type === 'order' && rec.productType && (
                     <span style={{ fontSize: '0.68rem', color: '#6b7280' }}>{PRODUCT_TYPE_LABELS[rec.productType] || rec.productType}</span>
                   )}
