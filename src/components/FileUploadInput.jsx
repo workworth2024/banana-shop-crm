@@ -60,9 +60,21 @@ export function ImageUploadInput({ file, onChange, currentImageUrl, label = 'И�
   )
 }
 
-export function FileUploadInput({ file, onChange, currentFileUrl, uploadProgress, label = 'Файл' }) {
+export function FileUploadInput({ file, onChange, currentFileUrl, onRemoveCurrent, uploadProgress, label = 'Файл' }) {
   const fileRef = useRef()
   const fileName = file?.name || (currentFileUrl ? currentFileUrl.split('/').pop() : null)
+
+  const handleRemove = (e) => {
+    e.stopPropagation()
+    if (file) {
+      // Just clear the freshly-picked file — if there was a saved file before,
+      // its name/link will show again since currentFileUrl is untouched.
+      onChange(null)
+    } else if (currentFileUrl && onRemoveCurrent) {
+      // No staged file — this is the already-saved one, actually remove it.
+      onRemoveCurrent()
+    }
+  }
 
   return (
     <div>
@@ -94,10 +106,11 @@ export function FileUploadInput({ file, onChange, currentFileUrl, uploadProgress
             </>
           )}
         </div>
-        {file && (
+        {(file || currentFileUrl) && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onChange(null) }}
+            title={file ? 'Отменить выбор файла' : 'Удалить файл'}
+            onClick={handleRemove}
             style={{ position: 'absolute', top: '8px', right: '8px', padding: '4px', backgroundColor: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
           >
             <X size={14} />

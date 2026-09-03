@@ -41,6 +41,7 @@ const Manuals = () => {
   // Form states
   const [manualForm, setManualForm] = useState({});
   const [manualFile, setManualFile] = useState(null);
+  const [manualFileRemoved, setManualFileRemoved] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [articleContentRu, setArticleContentRu] = useState('');
   const [articleContentEn, setArticleContentEn] = useState('');
@@ -181,6 +182,7 @@ const Manuals = () => {
       setArticleContentEn('');
     }
     setManualFile(null);
+    setManualFileRemoved(false);
     setShowManualModal(true);
   };
 
@@ -221,6 +223,8 @@ const Manuals = () => {
 
     if (manualFile) {
       formData.append('file', manualFile);
+    } else if (manualFileRemoved) {
+      formData.append('removeFile', 'true');
     }
 
     const isEdit = !!editingManual;
@@ -522,7 +526,8 @@ const Manuals = () => {
               <FileUploadInput
                 file={manualFile}
                 onChange={setManualFile}
-                currentFileUrl={editingManual?.path_to_file}
+                currentFileUrl={manualFileRemoved ? null : editingManual?.path_to_file}
+                onRemoveCurrent={() => setManualFileRemoved(true)}
                 uploadProgress={uploadProgress}
                 label="Файл (PDF, ZIP и др.)"
               />
