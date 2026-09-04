@@ -3,6 +3,12 @@ import api from './client';
 export const getSegmentFields = () =>
   api.get('/segments/fields');
 
+export const searchSegmentProducts = (search) =>
+  api.get(`/segments/products?search=${encodeURIComponent(search || '')}`);
+
+export const getSegmentProductsByIds = (ids) =>
+  api.get(`/segments/products?ids=${encodeURIComponent(ids.join(','))}`);
+
 export const previewSegmentCount = (conditions) =>
   api.post('/segments/preview', { conditions });
 

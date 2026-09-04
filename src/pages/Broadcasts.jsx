@@ -108,7 +108,9 @@ const emptyForm = {
   deliverToBot: true,
   text: '',
   imageFile: null,
-  imageUrl: null
+  imageUrl: null,
+  buttonText: '',
+  buttonUrl: ''
 };
 
 function BroadcastModal({ segments, onClose, onSaved }) {
@@ -163,6 +165,9 @@ function BroadcastModal({ segments, onClose, onSaved }) {
     if (form.audienceType === 'segment' && !form.segmentId) return toast.error('Выберите сегмент');
     if (!form.deliverToSite && !form.deliverToBot) return toast.error('Выберите хотя бы один способ доставки');
     if (form.launchType === 'scheduled' && !form.scheduledAt) return toast.error('Укажите дату и время запуска (МСК)');
+    if ((form.buttonText.trim() && !form.buttonUrl.trim()) || (!form.buttonText.trim() && form.buttonUrl.trim())) {
+      return toast.error('Укажите и название кнопки, и ссылку — или не заполняйте оба поля');
+    }
     if (uploadingImage) return toast.error('Дождитесь загрузки фото');
 
     const payload = {
@@ -175,7 +180,9 @@ function BroadcastModal({ segments, onClose, onSaved }) {
       segmentId: form.audienceType === 'segment' ? form.segmentId : null,
       deliverToSite: form.deliverToSite,
       deliverToBot: form.deliverToBot,
-      imageUrl: form.imageUrl || null
+      imageUrl: form.imageUrl || null,
+      buttonText: form.buttonText.trim() || null,
+      buttonUrl: form.buttonUrl.trim() || null
     };
 
     setSaving(true);
@@ -272,6 +279,17 @@ function BroadcastModal({ segments, onClose, onSaved }) {
 
           <ImageUploadInput file={form.imageFile} onChange={handleImageChange} label="Фото (необязательно)" />
           {uploadingImage && <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: 0 }}>Загрузка фото...</p>}
+
+          <div>
+            <label style={labelStyle}>Кнопка (необязательно)</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.6rem' }}>
+              <input type="text" value={form.buttonText} onChange={(e) => set('buttonText', e.target.value)} placeholder="Название кнопки" style={inputStyle} />
+              <input type="url" value={form.buttonUrl} onChange={(e) => set('buttonUrl', e.target.value)} placeholder="https://..." style={inputStyle} />
+            </div>
+            <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '0.35rem 0 0' }}>
+              Покажется как кнопка в попапе и уведомлении на сайте, и как инлайн-кнопка под сообщением в боте.
+            </p>
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem' }}>
             <button type="button" onClick={onClose} className="btn-secondary" disabled={saving}>Отмена</button>

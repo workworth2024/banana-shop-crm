@@ -3,24 +3,38 @@ import { Plus, Edit2, Trash2, X, Search, Users, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   getSegments, getSegmentFields, previewSegmentCount, createSegment,
-  updateSegment, recomputeSegment, deleteSegment, getSegmentMembers
+  updateSegment, recomputeSegment, deleteSegment, getSegmentMembers,
+  searchSegmentProducts, getSegmentProductsByIds
 } from '../api/segments';
 import { useConfirm } from '../components/ConfirmDialog';
 
 const OPERATOR_LABELS = { gt: '>', gte: '≥', lt: '<', lte: '≤', eq: '=' };
 const NUMBER_OPERATORS = ['gt', 'gte', 'eq', 'lte', 'lt'];
 
+async function getProductLabels(ids) {
+  const uniqueIds = [...new Set(ids)];
+  if (!uniqueIds.length) return {};
+  try {
+    const data = await getSegmentProductsByIds(uniqueIds);
+    const map = {};
+    (data.items || []).forEach((item) => { map[item._id] = item.title; });
+    return map;
+  } catch {
+    return {};
+  }
+}
+
 function emptyCondition(fields) {
   const first = fields[0];
   return {
     field: first?.key || '',
     operator: first?.type === 'number' ? 'gte' : null,
-    value: first?.type === 'boolean' ? true : '',
+    value: (first?.type === 'boolean' || first?.type === 'exists') ? true : '',
     valueTo: ''
   };
 }
 
-function conditionSummary(condition, fields) {
+function conditionSummary(condition, fields, productLabels) {
   const def = fields.find((f) => f.key === condition.field);
   if (!def) return condition.field;
   if (def.type === 'number') return `${def.label} ${OPERATOR_LABELS[condition.operator] || '='} ${condition.value}`;
@@ -30,13 +44,68 @@ function conditionSummary(condition, fields) {
     if (condition.valueTo) return `${def.label} ≤ ${condition.valueTo}`;
     return def.label;
   }
-  if (def.type === 'boolean') return `${def.label}: ${condition.value ? 'Да' : 'Нет'}`;
+  if (def.type === 'boolean' || def.type === 'exists') return `${def.label}: ${condition.value ? 'Да' : 'Нет'}`;
   if (def.type === 'select') {
     const opt = def.options?.find((o) => o.value === condition.value);
     return `${def.label}: ${opt?.label || condition.value}`;
   }
+  if (def.type === 'product') return `${def.label}: ${productLabels?.[condition.value] || '...'}`;
   if (def.type === 'text') return `${def.label} содержит «${condition.value}»`;
   return def.label;
+}
+
+function ProductSearchSelect({ label, onChange }) {
+  const [query, setQuery] = useState('')
+  const [options, setOptions] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    let cancelled = false;
+    setLoading(true);
+    const t = setTimeout(() => {
+      searchSegmentProducts(query)
+        .then((data) => { if (!cancelled) setOptions(data.items || []); })
+        .catch(() => { if (!cancelled) setOptions([]); })
+        .finally(() => { if (!cancelled) setLoading(false); });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [query, open]);
+
+  const pick = (item) => {
+    onChange(item._id, item.title);
+    setOpen(false);
+    setQuery('');
+  };
+
+  return (
+    <div style={{ position: 'relative', minWidth: 260 }}>
+      <input
+        type="text"
+        value={open ? query : (label || '')}
+        onFocus={() => { setOpen(true); setQuery(''); }}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Поиск товара..."
+        style={{ padding: '0.5rem 0.65rem', borderRadius: '8px', border: '1.5px solid #e5e7eb', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', width: '100%' }}
+      />
+      {open && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 20, maxHeight: '220px', overflowY: 'auto' }}>
+          {loading ? (
+            <div style={{ padding: '0.6rem 0.8rem', fontSize: '0.8rem', color: '#6b7280' }}>Поиск...</div>
+          ) : options.length === 0 ? (
+            <div style={{ padding: '0.6rem 0.8rem', fontSize: '0.8rem', color: '#6b7280' }}>Ничего не найдено</div>
+          ) : options.map((item) => (
+            <button key={item._id} type="button" onClick={() => pick(item)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem 0.8rem', background: 'none', border: 'none', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', fontSize: '0.82rem' }}>
+              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{item.title}</div>
+              <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{item.productType}</div>
+            </button>
+          ))}
+        </div>
+      )}
+      {open && <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />}
+    </div>
+  );
 }
 
 function ConditionRow({ condition, fields, onChange, onRemove }) {
@@ -48,7 +117,7 @@ function ConditionRow({ condition, fields, onChange, onRemove }) {
     onChange({
       field: key,
       operator: newDef?.type === 'number' ? 'gte' : null,
-      value: newDef?.type === 'boolean' ? true : (newDef?.type === 'select' ? newDef.options?.[0]?.value || '' : ''),
+      value: (newDef?.type === 'boolean' || newDef?.type === 'exists') ? true : (newDef?.type === 'select' ? newDef.options?.[0]?.value || '' : ''),
       valueTo: ''
     });
   };
@@ -77,7 +146,7 @@ function ConditionRow({ condition, fields, onChange, onRemove }) {
         </>
       )}
 
-      {def?.type === 'boolean' && (
+      {(def?.type === 'boolean' || def?.type === 'exists') && (
         <select value={condition.value ? 'true' : 'false'} onChange={(e) => onChange({ ...condition, value: e.target.value === 'true' })} style={{ ...inputStyle, width: 100 }}>
           <option value="true">Да</option>
           <option value="false">Нет</option>
@@ -92,6 +161,14 @@ function ConditionRow({ condition, fields, onChange, onRemove }) {
         <select value={condition.value || ''} onChange={(e) => onChange({ ...condition, value: e.target.value })} style={inputStyle}>
           {def.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
+      )}
+
+      {def?.type === 'product' && (
+        <ProductSearchSelect
+          value={condition.value}
+          label={condition._label}
+          onChange={(id, title) => onChange({ ...condition, value: id, _label: title })}
+        />
       )}
 
       <button type="button" onClick={onRemove} title="Удалить условие" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex' }}>
@@ -110,6 +187,19 @@ function SegmentModal({ segment, fields, onClose, onSaved }) {
   const [count, setCount] = useState(null);
   const [counting, setCounting] = useState(false);
   const debounceRef = useRef(null);
+
+  // Editing an existing segment: resolve saved product-condition ids back to
+  // their titles so ProductSearchSelect doesn't show a blank/raw id.
+  useEffect(() => {
+    const productIds = conditions
+      .filter((c) => fields.find((f) => f.key === c.field)?.type === 'product' && c.value)
+      .map((c) => c.value);
+    if (!productIds.length) return;
+    getProductLabels(productIds).then((labels) => {
+      setConditions((cs) => cs.map((c) => (labels[c.value] ? { ...c, _label: labels[c.value] } : c)));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const buildPayloadConditions = useCallback(() => conditions
     .filter((c) => c.field)
@@ -307,6 +397,7 @@ const Segments = () => {
   const [modalSegment, setModalSegment] = useState(undefined); // undefined = closed, null = create, obj = edit
   const [membersSegment, setMembersSegment] = useState(null);
   const [recomputingId, setRecomputingId] = useState(null);
+  const [productLabels, setProductLabels] = useState({});
   const { confirm, ConfirmNode } = useConfirm();
 
   useEffect(() => {
@@ -322,6 +413,12 @@ const Segments = () => {
       setItems(data.items || []);
       setTotal(data.total || 0);
       setPages(data.pages || 1);
+
+      const productIds = (data.items || [])
+        .flatMap((s) => s.conditions)
+        .filter((c) => c.field === 'lastPurchasedProduct' && c.value)
+        .map((c) => c.value);
+      if (productIds.length) getProductLabels(productIds).then(setProductLabels);
     } catch {
       toast.error('Ошибка загрузки сегментов');
     } finally {
@@ -408,7 +505,7 @@ const Segments = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxWidth: 340 }}>
                       {segment.conditions.map((c, idx) => (
                         <span key={idx} style={{ fontSize: '0.72rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '6px', background: '#f3f4f6', color: '#6b7280', width: 'fit-content' }}>
-                          {conditionSummary(c, fields)}
+                          {conditionSummary(c, fields, productLabels)}
                         </span>
                       ))}
                     </div>
