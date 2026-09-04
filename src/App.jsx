@@ -27,6 +27,7 @@ import Tracking from './pages/Tracking';
 import Team from './pages/Team';
 import PromoCodes from './pages/PromoCodes';
 import Segments from './pages/Segments';
+import Broadcasts from './pages/Broadcasts';
 
 function App() {
   return (
@@ -69,6 +70,7 @@ function App() {
           <Route path="design/team" element={<Team />} />
           <Route path="promo-codes" element={<PromoCodes />} />
           <Route path="segments" element={<Segments />} />
+          <Route path="broadcasts" element={<Broadcasts />} />
           <Route path="health" element={<HealthServer />} />
           <Route path="notif-settings" element={<NotifSettings />} />
           <Route path="profile" element={<Profile />} />
