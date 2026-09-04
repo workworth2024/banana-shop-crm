@@ -29,7 +29,8 @@ import {
   FileText,
   GitBranch,
   UserSquare2,
-  Tag
+  Tag,
+  PieChart
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, label, end }) => (
@@ -311,6 +312,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
 
         <SectionLabel label="Маркетинг" />
         <SidebarItem to="/promo-codes" icon={Tag} label="Промокоды" />
+        <SidebarItem to="/segments" icon={PieChart} label="Сегменты" />
 
         <SectionLabel label="Каталог" />
         <SidebarItem to="/products" icon={Package} label="Товары" />

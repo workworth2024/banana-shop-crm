@@ -26,6 +26,7 @@ import Referral from './pages/Referral';
 import Tracking from './pages/Tracking';
 import Team from './pages/Team';
 import PromoCodes from './pages/PromoCodes';
+import Segments from './pages/Segments';
 
 function App() {
   return (
@@ -67,6 +68,7 @@ function App() {
           <Route path="tracking" element={<Tracking />} />
           <Route path="design/team" element={<Team />} />
           <Route path="promo-codes" element={<PromoCodes />} />
+          <Route path="segments" element={<Segments />} />
           <Route path="health" element={<HealthServer />} />
           <Route path="notif-settings" element={<NotifSettings />} />
           <Route path="profile" element={<Profile />} />
