@@ -38,7 +38,7 @@ const Products = () => {
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get('tab') === 'google-ads' || searchParams.get('tab') === 'youtube')
     ? searchParams.get('tab')
-    : 'youtube';
+    : 'google-ads';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState([]);
@@ -582,23 +582,6 @@ const Products = () => {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #e5e7eb' }}>
         <button 
-          onClick={() => handleTabChange('youtube')}
-          style={{ 
-            backgroundColor: 'transparent', 
-            color: activeTab === 'youtube' ? 'var(--primary)' : '#6b7280',
-            borderBottom: activeTab === 'youtube' ? '2px solid var(--primary)' : '2px solid transparent',
-            borderRadius: 0,
-            padding: '1rem 2rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            fontWeight: activeTab === 'youtube' ? '700' : '500'
-          }}
-        >
-          <Youtube size={20} />
-          YouTube
-        </button>
-        <button 
           onClick={() => handleTabChange('google-ads')}
           style={{ 
             backgroundColor: 'transparent', 
@@ -614,6 +597,23 @@ const Products = () => {
         >
           <Globe size={20} />
           Google Ads
+        </button>
+        <button 
+          onClick={() => handleTabChange('youtube')}
+          style={{ 
+            backgroundColor: 'transparent', 
+            color: activeTab === 'youtube' ? 'var(--primary)' : '#6b7280',
+            borderBottom: activeTab === 'youtube' ? '2px solid var(--primary)' : '2px solid transparent',
+            borderRadius: 0,
+            padding: '1rem 2rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontWeight: activeTab === 'youtube' ? '700' : '500'
+          }}
+        >
+          <Youtube size={20} />
+          YouTube
         </button>
       </div>
 
