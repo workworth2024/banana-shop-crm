@@ -5,7 +5,7 @@ import {
 import toast from 'react-hot-toast';
 import {
   Link2, BarChart3, LayoutDashboard, Plus, Trash2, Pencil, Copy, Check,
-  X, Search, MousePointerClick, UserPlus, ShoppingBag, DollarSign, Globe, Monitor,
+  X, Search, MousePointerClick, MousePointer, UserPlus, ShoppingBag, DollarSign, Globe, Monitor,
   Percent, Fingerprint, Smartphone, Tablet, Bot, HelpCircle, Filter
 } from 'lucide-react';
 import trackingApi from '../api/tracking';
@@ -14,6 +14,8 @@ const fmtMoney = (n) => `$${(Number(n) || 0).toLocaleString('en-US', { maximumFr
 const fmtInt = (n) => (Number(n) || 0).toLocaleString('ru-RU');
 const fmtPct = (n) => `${(Number(n) || 0).toFixed(1)}%`;
 const crOf = (s = {}) => (s.clicks ? (s.registrations / s.clicks) * 100 : 0);
+// Button-click-through rate: of everyone who landed on the page, how many clicked the CTA.
+const btnCtrOf = (s = {}) => (s.clicks ? (s.buttonClicks / s.clicks) * 100 : 0);
 
 const moneyGreen = { color: '#16a34a', fontWeight: 700 };
 
@@ -173,8 +175,10 @@ function SubTab({ active, onClick, icon: Icon, label }) {
 function TotalsCards({ totals }) {
   const cr = totals.clicks ? (totals.registrations / totals.clicks) * 100 : 0;
   const items = [
-    { icon: MousePointerClick, label: 'Клики', value: fmtInt(totals.clicks), color: '#0ea5e9' },
-    { icon: Fingerprint, label: 'Уник. клики', value: fmtInt(totals.uniqueVisitors), color: '#6366f1' },
+    { icon: MousePointerClick, label: 'Переходы', value: fmtInt(totals.clicks), color: '#0ea5e9' },
+    { icon: Fingerprint, label: 'Уник. переходы', value: fmtInt(totals.uniqueVisitors), color: '#6366f1' },
+    { icon: MousePointer, label: 'Клики по кнопке', value: fmtInt(totals.buttonClicks), color: '#f59e0b' },
+    { icon: Percent, label: 'CTR кнопки', value: fmtPct(btnCtrOf(totals)), color: '#f97316' },
     { icon: UserPlus, label: 'Регистрации', value: fmtInt(totals.registrations), color: '#8b5cf6' },
     { icon: Percent, label: 'CR (рег.)', value: fmtPct(cr), color: '#ec4899' },
     { icon: ShoppingBag, label: 'Покупки', value: fmtInt(totals.purchases), color: '#10b981' },
@@ -200,7 +204,8 @@ function ConvRow({ totals }) {
   const cr = totals.registrations ? (totals.purchases / totals.registrations) * 100 : 0;
   return (
     <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.82rem', color: '#374151' }}>
-      <span>Клик→Рег: <b>{ctr.toFixed(1)}%</b></span>
+      <span>Переход→Кнопка: <b>{btnCtrOf(totals).toFixed(1)}%</b></span>
+      <span>Переход→Рег: <b>{ctr.toFixed(1)}%</b></span>
       <span>Рег→Покупка: <b>{cr.toFixed(1)}%</b></span>
       <span>ARPU: <b>{fmtMoney(totals.registrations ? totals.revenue / totals.registrations : 0)}</b></span>
     </div>
@@ -220,6 +225,10 @@ function TimeseriesChart({ data }) {
               <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.5} />
               <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
             </linearGradient>
+            <linearGradient id="tgB" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.5} />
+              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+            </linearGradient>
             <linearGradient id="tgR" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.5} />
               <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
@@ -234,7 +243,8 @@ function TimeseriesChart({ data }) {
           <YAxis stroke="#94a3b8" fontSize={11} allowDecimals={false} />
           <Tooltip />
           <Legend />
-          <Area type="monotone" dataKey="clicks" name="Клики" stroke="#0ea5e9" fill="url(#tgC)" />
+          <Area type="monotone" dataKey="clicks" name="Переходы" stroke="#0ea5e9" fill="url(#tgC)" />
+          <Area type="monotone" dataKey="buttonClicks" name="Клики по кнопке" stroke="#f59e0b" fill="url(#tgB)" />
           <Area type="monotone" dataKey="registrations" name="Регистрации" stroke="#8b5cf6" fill="url(#tgR)" />
           <Area type="monotone" dataKey="purchases" name="Покупки" stroke="#10b981" fill="url(#tgP)" />
         </AreaChart>
@@ -257,7 +267,8 @@ function BreakdownTable({ title, icon: Icon, rows, kind }) {
             <thead>
               <tr>
                 <th style={th}>{kind === 'geo' ? 'Гео' : 'Устройство / ОС'}</th>
-                <th style={{ ...th, textAlign: 'right' }}>Клики</th>
+                <th style={{ ...th, textAlign: 'right' }}>Переходы</th>
+                <th style={{ ...th, textAlign: 'right' }}>Кнопка</th>
                 <th style={{ ...th, textAlign: 'right' }}>Рег.</th>
                 <th style={{ ...th, textAlign: 'right' }}>Покупки</th>
                 <th style={{ ...th, textAlign: 'right' }}>Выручка</th>
@@ -272,6 +283,7 @@ function BreakdownTable({ title, icon: Icon, rows, kind }) {
                       : <DeviceCell type={r.device} os={r.os} />}
                   </td>
                   <td style={{ ...td, textAlign: 'right' }}>{fmtInt(r.clicks)}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{fmtInt(r.buttonClicks)}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{fmtInt(r.registrations)}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{fmtInt(r.purchases)}</td>
                   <td style={{ ...td, textAlign: 'right', ...moneyGreen }}>{fmtMoney(r.revenue)}</td>
@@ -465,6 +477,12 @@ function LinkModal({ initial, onClose, onSaved }) {
             </div>
           )}
 
+          {/^\/fb-(ge|md|pl|ua-1|ua-2)$/.test(form.targetPath.trim()) && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '9px', padding: '0.6rem 0.8rem', fontSize: '0.78rem', color: '#92400e' }}>
+              Это одна из FB/IG-прокладок — для неё в статистику ссылки автоматически попадут и переходы на страницу, и клики по кнопке «В Telegram» (отдельной настройки не требуется).
+            </div>
+          )}
+
           <div>
             <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151', marginBottom: '0.5rem' }}>UTM-метки</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
@@ -581,14 +599,16 @@ function LinksView({ onOpenStats }) {
         ) : links.length === 0 ? (
           <div style={{ padding: '2.5rem', textAlign: 'center', color: '#9ca3af' }}>Ссылок пока нет. Создайте первую умную ссылку.</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1040 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1220 }}>
             <thead>
               <tr>
                 <th style={th}>Название</th>
                 <th style={th}>UTM-ID</th>
                 <th style={th}>Ссылка</th>
-                <th style={{ ...th, textAlign: 'right' }}>Клики</th>
+                <th style={{ ...th, textAlign: 'right' }}>Переходы</th>
                 <th style={{ ...th, textAlign: 'right' }}>Уник.</th>
+                <th style={{ ...th, textAlign: 'right' }}>Кнопка</th>
+                <th style={{ ...th, textAlign: 'right' }}>CTR кн.</th>
                 <th style={{ ...th, textAlign: 'right' }}>Рег.</th>
                 <th style={{ ...th, textAlign: 'right' }}>CR</th>
                 <th style={{ ...th, textAlign: 'right' }}>Покупки</th>
@@ -615,6 +635,8 @@ function LinksView({ onOpenStats }) {
                   </td>
                   <td style={{ ...td, textAlign: 'right' }}>{fmtInt(l.stats?.clicks)}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{fmtInt(l.stats?.uniqueClicks)}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{fmtInt(l.stats?.buttonClicks)}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{fmtPct(btnCtrOf(l.stats))}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{fmtInt(l.stats?.registrations)}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{fmtPct(crOf(l.stats))}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{fmtInt(l.stats?.purchases)}</td>
@@ -773,12 +795,13 @@ function DashboardView({ onOpenStats }) {
             {(!data.topLinks || data.topLinks.length === 0) ? (
               <div style={{ padding: '1.5rem', textAlign: 'center', color: '#9ca3af' }}>Нет данных</div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 780, marginTop: '0.75rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900, marginTop: '0.75rem' }}>
                 <thead>
                   <tr>
                     <th style={th}>Название</th>
                     <th style={th}>UTM-ID</th>
-                    <th style={{ ...th, textAlign: 'right' }}>Клики</th>
+                    <th style={{ ...th, textAlign: 'right' }}>Переходы</th>
+                    <th style={{ ...th, textAlign: 'right' }}>Кнопка</th>
                     <th style={{ ...th, textAlign: 'right' }}>Рег.</th>
                     <th style={{ ...th, textAlign: 'right' }}>CR</th>
                     <th style={{ ...th, textAlign: 'right' }}>Покупки</th>
@@ -792,6 +815,7 @@ function DashboardView({ onOpenStats }) {
                       <td style={{ ...td, fontWeight: 600 }}>{l.name}</td>
                       <td style={td}><code style={{ fontSize: '0.78rem', background: '#f3f4f6', padding: '2px 6px', borderRadius: 5 }}>{l.code}</code></td>
                       <td style={{ ...td, textAlign: 'right' }}>{fmtInt(l.clicks)}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>{fmtInt(l.buttonClicks)}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{fmtInt(l.registrations)}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{fmtPct(crOf(l))}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{fmtInt(l.purchases)}</td>
