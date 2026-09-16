@@ -473,13 +473,13 @@ function LinkModal({ initial, onClose, onSaved }) {
 
           {editing && (
             <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '9px', padding: '0.6rem 0.8rem', fontSize: '0.8rem', color: '#374151' }}>
-              Базовый UTM-ID (utm_id): <b>{initial.code}</b>
+              Код ссылки (параметр blid): <b>{initial.code}</b>
             </div>
           )}
 
           {/^\/fb-(ge|md|pl|ua-1|ua-2)$/.test(form.targetPath.trim()) && (
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '9px', padding: '0.6rem 0.8rem', fontSize: '0.78rem', color: '#92400e' }}>
-              Это одна из FB/IG-прокладок — для неё в статистику ссылки автоматически попадут и переходы на страницу, и клики по кнопке «В Telegram» (отдельной настройки не требуется).
+              Это одна из FB/IG-прокладок — в статистику автоматически попадут и переходы на страницу, и клики по кнопке «В Telegram». Важно: в самой рекламе (Website URL в Ads Manager) ссылку нужно вставлять именно с <code>?{editing ? `blid=${initial.code}` : 'blid=...'}</code> в конце — если оставить просто путь без параметра и понадеяться на «динамические параметры» Meta, там будет свой <code>utm_id</code> с номером кампании, а не код этой ссылки, и статистика останется нулевой.
             </div>
           )}
 
