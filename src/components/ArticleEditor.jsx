@@ -253,15 +253,31 @@ const ArticleEditor = ({ valuRu, valueEn, onChangeRu, onChangeEn, onClose }) => 
         .tiptap mark { background-color: #fef08a; padding: 0 2px; border-radius: 2px; }
         .tiptap p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #9ca3af; pointer-events: none; float: left; height: 0; }
 
-        .raw-html-block { position: relative; margin: 1em 0; border: 1px dashed #a78bfa; border-radius: 8px; padding: 12px; background: #faf5ff; }
-        .raw-html-block.ProseMirror-selectednode { border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.25); }
+        .raw-html-block {
+          margin: 1.25em 0; border: 2px solid #7c3aed; border-radius: 10px; overflow: hidden;
+          background: white; box-shadow: 0 1px 3px rgba(124, 58, 237, 0.15);
+        }
+        .raw-html-block.ProseMirror-selectednode { box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35); }
+        .raw-html-block__header {
+          display: flex; align-items: center; justify-content: space-between; gap: 8px;
+          padding: 6px 10px; background: repeating-linear-gradient(135deg, #7c3aed, #7c3aed 10px, #6d28d9 10px, #6d28d9 20px);
+        }
+        .raw-html-block__label {
+          font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.75rem; font-weight: 800;
+          color: white; letter-spacing: 0.02em; text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+        }
+        .raw-html-block__edit {
+          flex: 0 0 auto; padding: 4px 10px; font-size: 0.72rem; font-weight: 700;
+          background: white; color: #7c3aed; border: none; border-radius: 6px; cursor: pointer;
+        }
+        .raw-html-block__edit:hover { background: #f3e8ff; }
+        .raw-html-block__preview-wrap { padding: 10px 12px; background: #faf5ff; }
+        .raw-html-block__preview-label {
+          font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+          color: #a78bfa; margin-bottom: 6px;
+        }
         .raw-html-block__preview { pointer-events: none; }
         .raw-html-block__empty { color: #9ca3af; font-size: 0.85rem; font-style: italic; }
-        .raw-html-block__edit {
-          position: absolute; top: 6px; right: 6px; padding: 3px 8px; font-size: 0.72rem; font-weight: 700;
-          background: #7c3aed; color: white; border: none; border-radius: 6px; cursor: pointer; opacity: 0.85;
-        }
-        .raw-html-block__edit:hover { opacity: 1; }
       `}</style>
     </div>
   )

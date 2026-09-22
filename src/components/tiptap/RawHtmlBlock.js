@@ -61,18 +61,26 @@ export const RawHtmlBlock = Node.create({
 
   addNodeView() {
     return ({ node, editor, getPos }) => {
+      // Always-visible "this is not article text, it's raw code" header —
+      // a label on its own tinted bar, so it reads as a distinct block even
+      // when the pasted HTML itself is plain unstyled text with no visual
+      // markers of its own.
       const dom = document.createElement('div')
       dom.className = 'raw-html-block'
+      dom.contentEditable = 'false'
 
-      const preview = document.createElement('div')
-      preview.className = 'raw-html-block__preview'
-      preview.innerHTML = node.attrs.html || '<span class="raw-html-block__empty">Пустой HTML-блок</span>'
-      dom.appendChild(preview)
+      const header = document.createElement('div')
+      header.className = 'raw-html-block__header'
+
+      const label = document.createElement('span')
+      label.className = 'raw-html-block__label'
+      label.innerHTML = '&lt;/&gt; HTML-блок'
+      header.appendChild(label)
 
       const editBtn = document.createElement('button')
       editBtn.type = 'button'
       editBtn.className = 'raw-html-block__edit'
-      editBtn.textContent = '✏️ HTML'
+      editBtn.textContent = '✏️ Редактировать код'
       editBtn.addEventListener('mousedown', (e) => {
         // mousedown (not click) so it fires before ProseMirror's own
         // selection handling can steal focus away from the modal we open.
@@ -89,13 +97,27 @@ export const RawHtmlBlock = Node.create({
           }
         })
       })
-      dom.appendChild(editBtn)
+      header.appendChild(editBtn)
+      dom.appendChild(header)
+
+      const previewWrap = document.createElement('div')
+      previewWrap.className = 'raw-html-block__preview-wrap'
+      const previewLabel = document.createElement('div')
+      previewLabel.className = 'raw-html-block__preview-label'
+      previewLabel.textContent = 'Как будет выглядеть на странице:'
+      previewWrap.appendChild(previewLabel)
+
+      const preview = document.createElement('div')
+      preview.className = 'raw-html-block__preview'
+      preview.innerHTML = node.attrs.html || '<span class="raw-html-block__empty">Пустой HTML-блок — нажмите «Редактировать код»</span>'
+      previewWrap.appendChild(preview)
+      dom.appendChild(previewWrap)
 
       return {
         dom,
         update: (updatedNode) => {
           if (updatedNode.type.name !== 'rawHtmlBlock') return false
-          preview.innerHTML = updatedNode.attrs.html || '<span class="raw-html-block__empty">Пустой HTML-блок</span>'
+          preview.innerHTML = updatedNode.attrs.html || '<span class="raw-html-block__empty">Пустой HTML-блок — нажмите «Редактировать код»</span>'
           return true
         }
       }
