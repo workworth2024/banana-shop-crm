@@ -12,7 +12,7 @@ import api from '../api/client'
 import { resolveMediaUrl } from '../utils/mediaUrl'
 import RawHtmlBlock, { inlineRawHtmlBlocks } from './tiptap/RawHtmlBlock'
 
-const MenuBar = ({ editor, onInsertHtml }) => {
+const MenuBar = ({ editor, onInsertHtml, uploadImageEndpoint }) => {
   const fileRef = useRef()
 
   if (!editor) return null
@@ -33,7 +33,7 @@ const MenuBar = ({ editor, onInsertHtml }) => {
     const formData = new FormData()
     formData.append('image', file)
     try {
-      const res = await api.request('/manuals/upload-image', { method: 'POST', body: formData })
+      const res = await api.request(uploadImageEndpoint, { method: 'POST', body: formData })
       editor.chain().focus().setImage({ src: resolveMediaUrl(res.url) }).run()
     } catch {
       alert('Ошибка загрузки изображения')
@@ -118,7 +118,7 @@ const MenuBar = ({ editor, onInsertHtml }) => {
   )
 }
 
-const ArticleEditor = ({ valuRu, valueEn, onChangeRu, onChangeEn, onClose }) => {
+const ArticleEditor = ({ valuRu, valueEn, onChangeRu, onChangeEn, onClose, uploadImageEndpoint = '/manuals/upload-image' }) => {
   // { html, onSave(html) } while the "insert/edit HTML" modal is open, else null.
   const [htmlModal, setHtmlModal] = useState(null)
   const openHtmlModal = useCallback((info) => setHtmlModal(info), [])
@@ -203,7 +203,7 @@ const ArticleEditor = ({ valuRu, valueEn, onChangeRu, onChangeEn, onClose }) => 
             <div style={{ padding: '10px 16px', backgroundColor: '#fef3c7', borderBottom: '1px solid #fde68a', fontSize: '0.8rem', fontWeight: '700', color: '#92400e' }}>
               🇷🇺 Русский
             </div>
-            <MenuBar editor={editorRu} onInsertHtml={insertHtml(editorRu)} />
+            <MenuBar editor={editorRu} onInsertHtml={insertHtml(editorRu)} uploadImageEndpoint={uploadImageEndpoint} />
             <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
               <EditorContent editor={editorRu} style={{ minHeight: '100%', outline: 'none' }} />
             </div>
@@ -213,7 +213,7 @@ const ArticleEditor = ({ valuRu, valueEn, onChangeRu, onChangeEn, onClose }) => 
             <div style={{ padding: '10px 16px', backgroundColor: '#dbeafe', borderBottom: '1px solid #bfdbfe', fontSize: '0.8rem', fontWeight: '700', color: '#1e40af' }}>
               🇬🇧 English
             </div>
-            <MenuBar editor={editorEn} onInsertHtml={insertHtml(editorEn)} />
+            <MenuBar editor={editorEn} onInsertHtml={insertHtml(editorEn)} uploadImageEndpoint={uploadImageEndpoint} />
             <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
               <EditorContent editor={editorEn} style={{ minHeight: '100%', outline: 'none' }} />
             </div>

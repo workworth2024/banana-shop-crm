@@ -28,6 +28,7 @@ import Team from './pages/Team';
 import PromoCodes from './pages/PromoCodes';
 import Segments from './pages/Segments';
 import Broadcasts from './pages/Broadcasts';
+import Partners from './pages/Partners';
 
 function App() {
   return (
@@ -71,6 +72,7 @@ function App() {
           <Route path="promo-codes" element={<PromoCodes />} />
           <Route path="segments" element={<Segments />} />
           <Route path="broadcasts" element={<Broadcasts />} />
+          <Route path="partners" element={<Partners />} />
           <Route path="health" element={<HealthServer />} />
           <Route path="notif-settings" element={<NotifSettings />} />
           <Route path="profile" element={<Profile />} />

@@ -31,7 +31,8 @@ import {
   UserSquare2,
   Tag,
   PieChart,
-  Send
+  Send,
+  Handshake
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, label, end }) => (
@@ -315,6 +316,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         <SidebarItem to="/promo-codes" icon={Tag} label="Промокоды" />
         <SidebarItem to="/segments" icon={PieChart} label="Сегменты" />
         <SidebarItem to="/broadcasts" icon={Send} label="Рассылки" />
+        <SidebarItem to="/partners" icon={Handshake} label="Партнёры" />
 
         <SectionLabel label="Каталог" />
         <SidebarItem to="/products" icon={Package} label="Товары" />
