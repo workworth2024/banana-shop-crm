@@ -32,7 +32,8 @@ import {
   Tag,
   PieChart,
   Send,
-  Handshake
+  Handshake,
+  Bell
 } from 'lucide-react';
 
 const SidebarItem = ({ to, icon: Icon, label, end }) => (
@@ -317,6 +318,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         <SidebarItem to="/segments" icon={PieChart} label="Сегменты" />
         <SidebarItem to="/broadcasts" icon={Send} label="Рассылки" />
         <SidebarItem to="/partners" icon={Handshake} label="Партнёры" />
+        <SidebarItem to="/product-subscriptions" icon={Bell} label="Подписки" />
 
         <SectionLabel label="Каталог" />
         <SidebarItem to="/products" icon={Package} label="Товары" />
