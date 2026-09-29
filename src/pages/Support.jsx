@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, Send, Paperclip, CheckCheck, Check, Lock, RefreshCw, MessageSquare, UserPlus, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Search, Send, Paperclip, CheckCheck, Check, Lock, RefreshCw, MessageSquare, UserPlus, Image as ImageIcon, ArrowLeft, UserSquare2 } from 'lucide-react';
 import { useSupportStore } from '../stores/supportStore';
 import { useSupportSocket, supportEmit } from '../hooks/useSupportSocket';
 import supportApi from '../api/support';
@@ -105,6 +105,7 @@ const Support = () => {
   const prevHeightRef = useRef(0);
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   useSupportSocket();
 
@@ -354,6 +355,15 @@ const Support = () => {
                 </div>
               </div>
               <div className={styles.mainActions}>
+                {active.customerId?._id && (
+                  <button
+                    onClick={() => navigate(`/clients?openClient=${active.customerId._id}`)}
+                    className={styles.actionBtn}
+                    title="Открыть карточку клиента"
+                  >
+                    <UserSquare2 size={13} /> Клиент
+                  </button>
+                )}
                 {!active.assignedTo && (
                   <button onClick={handleAssign} className={styles.actionBtn}>
                     <UserPlus size={13} /> Взять
