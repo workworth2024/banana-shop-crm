@@ -429,6 +429,16 @@ const Products = () => {
       setFormStep(formStep + 1);
       return;
     }
+    if (!productForm.type) {
+      // The "Тип" <select required> only exists in the DOM on the 'basic'
+      // step (conditionally rendered per-step), so the browser's native
+      // required-field check never sees it once you've moved past that
+      // step — without this, an empty type silently reaches the backend
+      // and fails with a generic 500 on save.
+      toast.error('Выберите тип аккаунта');
+      setFormStep(formStepKeys.indexOf('basic'));
+      return;
+    }
     if (!productForm['title.ru'] && !productForm['title.en']) {
       toast.error('Название должно быть заполнено на русском или английском языке');
       return;
