@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api/client';
 import toast from 'react-hot-toast';
 import { GitBranch, Save, ChevronDown, ChevronUp, Search, X, Plus, Trash2, Check, Pencil } from 'lucide-react';
@@ -534,6 +535,9 @@ function IndividualRatesPanel({ globalSettings }) {
 }
 
 export default function Referral() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') || '';
+
   const [settings, setSettings] = useState(null);
   const [saving, setSaving] = useState(false);
   const [referrers, setReferrers] = useState([]);
@@ -541,9 +545,13 @@ export default function Referral() {
   const [pages, setPages] = useState(1);
   const [page, setPage] = useState(1);
   const [period, setPeriod] = useState('all');
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState(urlSearch);
+  const [searchInput, setSearchInput] = useState(urlSearch);
   const [expandedId, setExpandedId] = useState(null);
+  // Set when arriving via a deep link (e.g. "Рефералы" button on a client's
+  // card) — once the search resolves to exactly that one user, auto-expand
+  // their row so their stats are visible without an extra click.
+  const autoExpandRef = useRef(!!urlSearch);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 900);
   const [activeTab, setActiveTab] = useState('global');
@@ -563,9 +571,19 @@ export default function Referral() {
     try {
       const params = new URLSearchParams({ period, search, page, limit: 20 }).toString();
       const d = await api.get(`/referral/referrers?${params}`);
-      setReferrers(d.referrers || []);
+      const list = d.referrers || [];
+      setReferrers(list);
       setTotal(d.total || 0);
       setPages(d.pages || 1);
+      if (autoExpandRef.current) {
+        autoExpandRef.current = false;
+        if (list.length === 1) setExpandedId(String(list[0]._id));
+        setSearchParams(prev => {
+          const next = new URLSearchParams(prev);
+          next.delete('search');
+          return next;
+        }, { replace: true });
+      }
     } catch {
       toast.error('Ошибка загрузки рефоводов');
     } finally {

@@ -273,6 +273,10 @@ const Clients = () => {
     setShowDetailModal(false);
     navigate(`/orders?type=white_page&search=${encodeURIComponent(username)}`);
   };
+  const navToReferral = (username) => {
+    setShowDetailModal(false);
+    navigate(`/referral?search=${encodeURIComponent(username)}`);
+  };
   const navToTransactions = (username) => {
     setShowDetailModal(false);
     navigate(`/transactions?search=${encodeURIComponent(username)}`);
@@ -625,6 +629,7 @@ const Clients = () => {
                   { label: 'Услуги', icon: Briefcase, color: '#f59e0b', bg: '#fffbeb', action: () => navToServices(selectedClient.username) },
                   { label: 'White Pages', icon: Globe, color: '#0ea5e9', bg: '#f0f9ff', action: () => navToWhitePages(selectedClient.username) },
                   { label: 'Транзакции', icon: ArrowLeftRight, color: '#059669', bg: '#ecfdf5', action: () => navToTransactions(selectedClient.username) },
+                  { label: 'Рефералы', icon: GitBranch, color: '#7c3aed', bg: '#f5f3ff', action: () => navToReferral(selectedClient.username) },
                 ].map(({ label, icon: Icon, color, bg, action }) => (
                   <button key={label} onClick={action} style={{
                     display: 'flex', alignItems: 'center', gap: '0.5rem',
