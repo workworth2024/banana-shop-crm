@@ -33,8 +33,10 @@ import {
   PieChart,
   Send,
   Handshake,
-  Bell
+  Bell,
+  Newspaper
 } from 'lucide-react';
+import { useTestingMode, withTestingParam } from '../utils/testingMode';
 
 const SidebarItem = ({ to, icon: Icon, label, end }) => (
   <NavLink
@@ -256,6 +258,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
   const whitePagesUnread = categoryCounts.white_page_order || 0;
   const purchasesUnread = ordersUnread + replacementsUnread + preordersUnread + serviceOrdersUnread + whitePagesUnread;
   const location = useLocation();
+  const testingMode = useTestingMode();
 
   React.useEffect(() => {
     if (mobileOpen) onMobileClose();
@@ -319,6 +322,7 @@ const Sidebar = ({ mobileOpen = false, onMobileClose = () => {} }) => {
         <SidebarItem to="/broadcasts" icon={Send} label="Рассылки" />
         <SidebarItem to="/partners" icon={Handshake} label="Партнёры" />
         <SidebarItem to="/product-subscriptions" icon={Bell} label="Подписки" />
+        {testingMode && <SidebarItem to={withTestingParam('/blog')} icon={Newspaper} label="Блог" />}
 
         <SectionLabel label="Каталог" />
         <SidebarItem to="/products" icon={Package} label="Товары" />

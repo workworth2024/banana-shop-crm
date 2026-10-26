@@ -30,6 +30,8 @@ import Segments from './pages/Segments';
 import Broadcasts from './pages/Broadcasts';
 import Partners from './pages/Partners';
 import ProductSubscriptions from './pages/ProductSubscriptions';
+import Blog from './pages/Blog';
+import TestingGate from './components/TestingGate';
 
 function App() {
   return (
@@ -74,6 +76,7 @@ function App() {
           <Route path="segments" element={<Segments />} />
           <Route path="broadcasts" element={<Broadcasts />} />
           <Route path="partners" element={<Partners />} />
+          <Route path="blog" element={<TestingGate><Blog /></TestingGate>} />
           <Route path="product-subscriptions" element={<ProductSubscriptions />} />
           <Route path="health" element={<HealthServer />} />
           <Route path="notif-settings" element={<NotifSettings />} />

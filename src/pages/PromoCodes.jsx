@@ -9,7 +9,7 @@ import { getClients } from '../api/clients';
 import { useConfirm } from '../components/ConfirmDialog';
 
 const TYPE_LABELS = { balance: 'Баланс', discount: 'Скидка' };
-const SCOPE_LABELS = { any: 'Любой продукт', google_ads: 'Google Ads', youtube: 'YouTube', service: 'Услуга' };
+const SCOPE_LABELS = { any: 'Любой продукт', google_ads: 'Google Ads', youtube: 'YouTube', service: 'Услуга', white_pages: 'White Pages' };
 
 const SITE_URL = (import.meta.env.VITE_API_URL || 'https://banana-traff-shop.com').replace(/\/api\/v3\/?$/, '');
 const promoLink = (code) => `${SITE_URL}/?promo=${encodeURIComponent(code)}`;
@@ -245,6 +245,7 @@ function PromoCodeModal({ promo, onClose, onSaved }) {
                   <option value="google_ads">Google Ads товары</option>
                   <option value="youtube">YouTube товары</option>
                   <option value="service">Услуги</option>
+                  <option value="white_pages">White Pages (генератор)</option>
                 </select>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: form.discountType === 'percent' ? '1fr 1fr 1fr' : '1fr 1fr', gap: '0.75rem' }}>
